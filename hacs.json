@@ -1,0 +1,8 @@
+{
+    "name": "Netlink",
+    "render_reame": true,
+    "homeassistant": "2025.2.0",
+    "hacs": "1.34.0",
+    "zip_release": true,
+    "filename": "netlink.zip"
+}
