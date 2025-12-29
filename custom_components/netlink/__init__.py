@@ -62,7 +62,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         model=coordinator.device_info.model,
         sw_version=coordinator.device_info.version,
         configuration_url=f"http://{entry.data[CONF_HOST]}",
-        connections={(dr.CONNECTION_NETWORK_MAC, mac_address)} if mac_address else set(),
+        connections={(dr.CONNECTION_NETWORK_MAC, mac_address)}
+        if mac_address
+        else set(),
         suggested_area=_get_suggested_area(device_name),
     )
 

@@ -1,7 +1,6 @@
 """Button platform for Netlink."""
 
 from __future__ import annotations
-from syrupy.terminal import _attr
 
 from dataclasses import dataclass
 from typing import Callable
@@ -50,6 +49,7 @@ MAIN_BUTTONS: list[NetlinkButtonEntityDescription] = [
     ),
 ]
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -91,7 +91,7 @@ class NetlinkDeskButton(NetlinkDeskEntity, ButtonEntity):
 
 class NetlinkMainButton(NetlinkMainEntity, ButtonEntity):
     """Main controller button entity."""
-    
+
     _attr_has_entity_name = True
 
     def __init__(

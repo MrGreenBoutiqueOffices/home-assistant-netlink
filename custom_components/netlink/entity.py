@@ -127,5 +127,3 @@ class NetlinkDisplayEntity(NetlinkBaseEntity):
             via_device=(DOMAIN, self.device_identifier),
             configuration_url=f"http://{self.entry.data[CONF_HOST]}",
         )
-
-
