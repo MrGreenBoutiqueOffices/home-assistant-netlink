@@ -23,6 +23,7 @@ from .entity import NetlinkDeskEntity, NetlinkDisplayEntity
 
 _LOGGER = logging.getLogger(__name__)
 
+
 def _display_supports(
     coordinator: NetlinkDataUpdateCoordinator, bus_id: str, capability: str
 ) -> bool | None:

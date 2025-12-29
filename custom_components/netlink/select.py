@@ -25,7 +25,9 @@ DISPLAY_SELECTS: list[NetlinkSelectEntityDescription] = [
     NetlinkSelectEntityDescription(
         key="source",
         translation_key="display_source",
-        select_fn=lambda client, bus_id, option: client.set_display_source(bus_id, option),
+        select_fn=lambda client, bus_id, option: client.set_display_source(
+            bus_id, option
+        ),
     ),
 ]
 

@@ -83,6 +83,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_setup(self) -> None:
         """Setup WebSocket listeners and fetch initial data."""
+
         # Register WebSocket event handlers
         @self.client.on("connect")
         async def on_connect(_: dict[str, Any]) -> None:

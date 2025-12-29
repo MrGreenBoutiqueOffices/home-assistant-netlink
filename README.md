@@ -123,16 +123,6 @@ When you add a Netlink device, the integration registers:
 - **Buttons**:
   - `button.{device_name}_browser_refresh` - Refresh browser
 
-## Services Used
-
-This integration does not register custom Home Assistant services. It uses the
-standard entity services below:
-
-- `number.set_value` for desk height, display brightness, and volume
-- `switch.turn_on` / `switch.turn_off` for desk beep and display power
-- `select.select_option` for display input source
-- `button.press` for desk and browser actions
-
 ## Migration from MQTT
 
 This integration is designed to be compatible with the MQTT-based setup:
