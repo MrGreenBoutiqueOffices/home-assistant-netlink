@@ -11,7 +11,7 @@ on:
 jobs:
   update_release_draft:
     name: ✏️ Draft release
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: read
