@@ -1,0 +1,71 @@
+{
+  "entity": {
+    "sensor": {
+      "desk_height": {
+        "default": "mdi:arrow-expand-vertical"
+      },
+      "desk_mode": {
+        "default": "mdi:information"
+      },
+      "desk_moving": {
+        "default": "mdi:motion-sensor"
+      },
+      "desk_error": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "display_brightness": {
+        "default": "mdi:brightness-6"
+      },
+      "display_volume": {
+        "default": "mdi:volume-high"
+      },
+      "display_power": {
+        "default": "mdi:power"
+      },
+      "display_source": {
+        "default": "mdi:video-input-hdmi"
+      },
+      "display_error": {
+        "default": "mdi:alert-circle-outline"
+      }
+    },
+    "number": {
+      "desk_target_height": {
+        "default": "mdi:arrow-expand-vertical"
+      },
+      "display_brightness": {
+        "default": "mdi:brightness-6"
+      },
+      "display_volume": {
+        "default": "mdi:volume-high"
+      }
+    },
+    "switch": {
+      "desk_beep": {
+        "default": "mdi:bell"
+      },
+      "display_power": {
+        "default": "mdi:power"
+      }
+    },
+    "select": {
+      "display_source": {
+        "default": "mdi:video-input-hdmi"
+      }
+    },
+    "button": {
+      "desk_stop": {
+        "default": "mdi:stop"
+      },
+      "desk_reset": {
+        "default": "mdi:restart"
+      },
+      "desk_calibrate": {
+        "default": "mdi:wrench"
+      },
+      "browser_refresh": {
+        "default": "mdi:refresh"
+      }
+    }
+  }
+}

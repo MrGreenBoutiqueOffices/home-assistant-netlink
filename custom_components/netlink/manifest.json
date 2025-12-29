@@ -1,0 +1,16 @@
+{
+  "domain": "netlink",
+  "name": "Netlink",
+  "codeowners": ["@klaasnicolaas"],
+  "config_flow": true,
+  "documentation": "https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "requirements": ["pynetlink==1.0.2"],
+  "zeroconf": [
+    {
+      "type": "_netlink._tcp.local."
+    }
+  ],
+  "version": "0.2.0"
+}

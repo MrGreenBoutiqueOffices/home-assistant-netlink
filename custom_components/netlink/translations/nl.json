@@ -1,0 +1,108 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Apparaat is al geconfigureerd"
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken",
+      "invalid_auth": "Ongeldige authenticatie",
+      "unknown": "Onbekende fout"
+    },
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "Netlink instellen",
+        "description": "Voer de verbindingsgegevens van je Netlink apparaat in.",
+        "data": {
+          "host": "Host",
+          "token": "Token"
+        },
+        "data_description": {
+          "host": "Het IP-adres of hostname van je Netlink apparaat.",
+          "token": "Je vindt dit token in de Netlink webinterface."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Configureer {name}",
+        "description": "Voer het authenticatie token in voor {name} op {host}.",
+        "data": {
+          "token": "Token"
+        },
+        "data_description": {
+          "token": "Je vindt dit token in de Netlink webinterface."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "desk_height": {
+        "name": "Hoogte"
+      },
+      "desk_mode": {
+        "name": "Modus"
+      },
+      "desk_error": {
+        "name": "Fout"
+      },
+      "display_brightness": {
+        "name": "Helderheid"
+      },
+      "display_volume": {
+        "name": "Volume"
+      },
+      "display_power": {
+        "name": "Aan/uit"
+      },
+      "display_source": {
+        "name": "Bron"
+      },
+      "display_error": {
+        "name": "Fout"
+      }
+    },
+    "number": {
+      "desk_target_height": {
+        "name": "Doelhoogte"
+      },
+      "display_brightness": {
+        "name": "Helderheid"
+      },
+      "display_volume": {
+        "name": "Volume"
+      }
+    },
+    "switch": {
+      "desk_beep": {
+        "name": "Piep"
+      },
+      "display_power": {
+        "name": "Aan/uit"
+      }
+    },
+    "select": {
+      "display_source": {
+        "name": "Bron"
+      }
+    },
+    "button": {
+      "desk_stop": {
+        "name": "Stop"
+      },
+      "desk_reset": {
+        "name": "Reset"
+      },
+      "desk_calibrate": {
+        "name": "Kalibreren"
+      },
+      "browser_refresh": {
+        "name": "Browser vernieuwen"
+      }
+    },
+    "binary_sensor": {
+      "desk_moving": {
+        "name": "In beweging"
+      }
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "Setup Netlink",
+        "description": "Enter the connection details for your Netlink device.",
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]",
+          "token": "[%key:common::config_flow::data::token%]"
+        },
+        "data_description": {
+          "host": "The IP address or hostname of your Netlink device.",
+          "token": "Find this token in the Netlink web interface."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Configure {name}",
+        "description": "Enter the authentication token for {name} at {host}.",
+        "data": {
+          "token": "[%key:common::config_flow::data::token%]"
+        },
+        "data_description": {
+          "token": "[%key:component::netlink::config::step::user::data_description::token%]"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "desk_height": {
+        "name": "Height"
+      },
+      "desk_mode": {
+        "name": "Mode"
+      },
+      "desk_error": {
+        "name": "Error"
+      },
+      "display_brightness": {
+        "name": "Brightness"
+      },
+      "display_volume": {
+        "name": "Volume"
+      },
+      "display_power": {
+        "name": "Power"
+      },
+      "display_source": {
+        "name": "Source"
+      },
+      "display_error": {
+        "name": "Error"
+      }
+    },
+    "number": {
+      "desk_target_height": {
+        "name": "Target height"
+      },
+      "display_brightness": {
+        "name": "Brightness"
+      },
+      "display_volume": {
+        "name": "Volume"
+      }
+    },
+    "switch": {
+      "desk_beep": {
+        "name": "Beep"
+      },
+      "display_power": {
+        "name": "Power"
+      }
+    },
+    "select": {
+      "display_source": {
+        "name": "Source"
+      }
+    },
+    "button": {
+      "desk_stop": {
+        "name": "Stop"
+      },
+      "desk_reset": {
+        "name": "Reset"
+      },
+      "desk_calibrate": {
+        "name": "Calibrate"
+      },
+      "browser_refresh": {
+        "name": "Refresh"
+      }
+    },
+    "binary_sensor": {
+      "desk_moving": {
+        "name": "Moving"
+      }
+    }
+  }
+}
