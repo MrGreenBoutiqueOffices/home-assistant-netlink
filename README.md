@@ -23,6 +23,7 @@ This native Home Assistant integration provides **real-time control** over Netli
 - 📊 **Rich entities** - Binary sensors, sensors, numbers, switches, selects, and buttons
 - 🏠 **Native HA integration** - Config flow, device registry, and proper entity organization
 - 🔑 **Reauthentication flow** - Automatic token refresh when authentication expires
+- 🔍 **Diagnostics support** - Download diagnostic data for troubleshooting
 - 🎨 **Icons** - Entity icons defined via `icons.json`
 
 ## Requirements
@@ -191,6 +192,14 @@ This integration is fully compatible with the MQTT-based setup:
 - Display must support the feature (brightness/volume/source)
 - Entities are created dynamically based on capabilities
 - Check device logs for display detection
+
+### Getting diagnostic information
+- Navigate to **Settings** → **Devices & Services** → **Netlink**
+- Click on your Netlink device
+- Click **Download diagnostics** (three dots menu)
+- Share the downloaded JSON file when reporting issues
+- Diagnostics include: device info, coordinator state, connection status, entity states
+- Sensitive data (tokens) is automatically redacted
 
 </details>
 
