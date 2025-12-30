@@ -11,6 +11,8 @@ Native Home Assistant integration for Netlink smart desk and monitor control sys
 
 Netlink is the operating software for smart standing desks, developed by [NetOS](https://net-os.com/). The system powers smart desks in commercial office environments, most notably at [Mr.Green Offices](https://mrgreenoffices.nl/) locations throughout the Netherlands.
 
+This native Home Assistant integration provides **real-time control** over Netlink-powered desks. Unlike traditional polling-based integrations, it uses WebSocket push updates for instant state synchronization, making it ideal for responsive automations and dashboards.
+
 ## Features
 
 - 🔌 **WebSocket real-time updates** - Instant state changes via push notifications
@@ -30,138 +32,170 @@ Netlink is the operating software for smart standing desks, developed by [NetOS]
 
 ## Installation
 
+<details>
+<summary><b>📦 Installation Methods</b> (click to expand)</summary>
+
+### HACS (Custom Repository)
+
+1. Open HACS in Home Assistant
+2. Go to "Integrations"
+3. Click the three dots (⋮) in the top right → "Custom repositories"
+4. Add repository URL: `https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink`
+5. Category: "Integration"
+6. Click "Add"
+7. Install "Netlink" from the integrations list
+8. Restart Home Assistant
+
 ### Manual Installation
 
-1. Copy the `custom_components/netlink` folder to your Home Assistant `custom_components` directory
-2. Restart Home Assistant
-3. Go to Settings → Devices & Services → Add Integration
-4. Search for "Netlink"
-5. Follow the configuration steps
+1. Download the [latest release](https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink/releases)
+2. Extract and copy `custom_components/netlink` to your HA config directory
+3. Restart Home Assistant
+
+</details>
 
 ## Configuration
 
-### Automatic Discovery
+The integration supports both **automatic discovery** (mDNS/Zeroconf) and **manual setup**.
 
-The integration will automatically discover Netlink devices on your network via mDNS:
+<details>
+<summary><b>⚙️ Setup Instructions</b> (click to expand)</summary>
 
-1. Go to Settings → Devices & Services
-2. Click "+ Add Integration"
-3. Select "Netlink" from the list
-4. Select your device from the discovered devices
-5. Enter the bearer token when prompted
-6. Click "Submit"
+### Automatic Discovery (Recommended)
+
+If your Netlink device is discovered via mDNS/Zeroconf, it will appear automatically:
+
+1. Go to **Settings** → **Devices & Services**
+2. Find the discovered Netlink device in the list
+3. Click **"Add"**
+4. Enter the **bearer token**
+5. Click **"Submit"**
+
+The device will be added immediately.
 
 ### Manual Setup
 
 If automatic discovery doesn't work:
 
-1. Go to Settings → Devices & Services
-2. Click "+ Add Integration"
-3. Select "Netlink"
-4. Choose "Manual Setup"
-5. Enter the device IP/hostname
-6. Enter the bearer token
-7. Click "Submit"
+1. Go to **Settings** → **Devices & Services**
+2. Click **"+ Add Integration"**
+3. Search for **"Netlink"**
+4. Enter the **host** (IP address or hostname) and **bearer token**
+5. Click **"Submit"**
+
+The device will be added immediately.
+
+> **Note**: Bearer token can be found in your Netlink device configuration (`REST_BEARER_TOKEN` environment variable).
+
+</details>
 
 ## Entities
 
-The integration creates the following entities per Netlink device:
+<details>
+<summary><b>📊 Entity Overview</b> (click to expand)</summary>
 
-## Devices Created
+### Devices Created
 
-When you add a Netlink device, the integration registers:
+Each Netlink device creates multiple HA devices:
 
-- **Main device**: `{device_name}`
-  - Manufacturer: NetOS
-  - Model: Device model
-  - Contains browser control entities
-- **Desk device**: `{device_name} (Desk)`
-  - Manufacturer: NetOS
-  - Model: Desk Controller
-  - Contains desk entities
-- **Display device(s)**: `{device_name} (Display {bus_id})` per display bus
-  - Manufacturer: NetOS
-  - Model: Detected display model (fallback: "Display")
-  - Contains display entities (power, brightness, volume, source, error)
+- **Main device**: `{device_name}` (Browser entities)
+- **Desk device**: `{device_name} (Desk)` (Desk entities)
+- **Display device(s)**: `{device_name} (Display {bus_id})` (Per display)
 
-### Desk Entities
+### 🪑 Desk Entities
 
-- **Binary Sensors**:
-  - `binary_sensor.{device_name}_desk_moving` - Desk movement status
+| Entity Type | Entity | Description |
+|------------|--------|-------------|
+| **Binary Sensor** | `binary_sensor.desk_moving` | Movement status |
+| **Sensor** | `sensor.desk_height` | Current height (cm) |
+| **Sensor** | `sensor.desk_mode` | Operation mode |
+| **Sensor** | `sensor.desk_error` | Error messages |
+| **Number** | `number.desk_target_height` | Set height (62-127 cm) |
+| **Switch** | `switch.desk_beep` | Beep on/off |
+| **Button** | `button.desk_stop` | Stop movement |
+| **Button** | `button.desk_reset` | Reset desk |
+| **Button** | `button.desk_calibrate` | Calibrate (disabled by default) |
 
-- **Sensors**:
-  - `sensor.{device_name}_desk_height` - Current desk height (cm)
-  - `sensor.{device_name}_desk_mode` - Operation mode
-  - `sensor.{device_name}_desk_error` - Error messages (if any)
+### 🖥️ Display Entities (per display)
 
-- **Controls**:
-  - `number.{device_name}_desk_target_height` - Set target height (62-127 cm)
-  - `switch.{device_name}_desk_beep` - Beep setting (on/off)
+| Entity Type | Entity | Description |
+|------------|--------|-------------|
+| **Sensor** | `sensor.display_{bus_id}_brightness` | Current brightness (%) |
+| **Sensor** | `sensor.display_{bus_id}_volume` | Current volume (%) |
+| **Sensor** | `sensor.display_{bus_id}_power` | Power state |
+| **Sensor** | `sensor.display_{bus_id}_source` | Current input source |
+| **Sensor** | `sensor.display_{bus_id}_error` | Error messages |
+| **Switch** | `switch.display_{bus_id}_power` | Power on/off |
+| **Number** | `number.display_{bus_id}_brightness` | Set brightness (0-100%) |
+| **Number** | `number.display_{bus_id}_volume` | Set volume (0-100%) |
+| **Select** | `select.display_{bus_id}_source` | Input source selection |
 
-- **Buttons**:
-  - `button.{device_name}_desk_stop` - Stop movement
-  - `button.{device_name}_desk_reset` - Reset desk
-  - `button.{device_name}_desk_calibrate` - Calibrate desk (disabled by default)
+> **Note**: Display control entities are only created if the display supports them (brightness, volume, source).
 
-### Display Entities (per display)
+### 🌐 Browser Entities
 
-- **Sensors**:
-  - `sensor.{device_name}_display_{bus_id}_brightness` - Current brightness (%)
-  - `sensor.{device_name}_display_{bus_id}_volume` - Current volume (%)
-  - `sensor.{device_name}_display_{bus_id}_power` - Power state
-  - `sensor.{device_name}_display_{bus_id}_source` - Current input source
-  - `sensor.{device_name}_display_{bus_id}_error` - Error messages (if any)
+| Entity Type | Entity | Description |
+|------------|--------|-------------|
+| **Button** | `button.browser_refresh` | Refresh browser |
 
-- **Controls**:
-  - `switch.{device_name}_display_{bus_id}_power` - Power on/off
-  - `number.{device_name}_display_{bus_id}_brightness` - Set brightness (0-100%, if supported)
-  - `number.{device_name}_display_{bus_id}_volume` - Set volume (0-100%, if supported)
-  - `select.{device_name}_display_{bus_id}_source` - Input source selection (if supported)
-
-  
-### Browser Entities
-
-- **Buttons**:
-  - `button.{device_name}_browser_refresh` - Refresh browser
+</details>
 
 ## Migration from MQTT
 
-This integration is designed to be compatible with the MQTT-based setup:
+<details>
+<summary><b>🔄 Migrating from MQTT</b> (click to expand)</summary>
 
-- **Device IDs** are identical to MQTT setup for smooth migration
-- **Entity naming** follows the same pattern
-- **Both can coexist** - MQTT and native integration can run simultaneously
+This integration is fully compatible with the MQTT-based setup:
 
-To migrate:
+- ✅ **Device IDs** are identical for smooth migration
+- ✅ **Entity naming** follows the same pattern
+- ✅ **Both can coexist** - Run MQTT and native side-by-side
+
+### Migration Steps
 
 1. Install the native integration (keep MQTT running)
 2. Verify all entities work correctly
-3. Disable MQTT discovery for Netlink devices (optional)
-4. Remove old MQTT automations/scripts if needed
+3. Disable MQTT discovery for Netlink (optional)
+4. Update automations to use native entities
+5. Remove MQTT configuration when ready
+
+</details>
 
 ## Troubleshooting
 
-### Device not discovered
+<details>
+<summary><b>🔧 Common Issues</b> (click to expand)</summary>
 
-- Ensure mDNS/Zeroconf is working on your network
-- Try manual setup instead
-- Check firewall rules (port 80 for REST, WebSocket)
+### Device not discovered
+- Ensure mDNS/Zeroconf is enabled on your network
+- Try **manual setup** instead
+- Check firewall rules (port 80 for REST/WebSocket)
+
+### Authentication errors
+- Verify bearer token matches device configuration
+- Check `REST_BEARER_TOKEN` environment variable
+- Don't include `Bearer ` prefix in token
 
 ### Connection errors
-
-- Verify the bearer token is correct
-- Check device is reachable: `ping <device_ip>`
-- Review Home Assistant logs: Settings → System → Logs
+- Confirm device is reachable: `ping <device_ip>`
+- Review HA logs: **Settings** → **System** → **Logs**
+- Check WebSocket connection in logs
 
 ### Entities unavailable
+- WebSocket connection may be down
+- Integration auto-reconnects (exponential backoff: 1s → 60s)
+- Entities show "unavailable" during disconnection
 
-- Check WebSocket connection status in logs
-- Device will auto-reconnect with exponential backoff
-- Entities show "unavailable" during connection loss
+### Display controls not appearing
+- Display must support the feature (brightness/volume/source)
+- Entities are created dynamically based on capabilities
+- Check device logs for display detection
+
+</details>
 
 ## Development
 
-Built on top of [`pynetlink`](https://github.com/MrGreenBoutiqueOffices/python-netlink) - the production-ready Python client library for Netlink devices.
+Built on top of [`pynetlink`](https://github.com/MrGreenBoutiqueOffices/python-netlink) - the production-ready Python client library.
 
 ### Local Development
 
@@ -176,15 +210,21 @@ ln -s $(pwd)/custom_components/netlink ~/.homeassistant/custom_components/
 # Restart Home Assistant
 ```
 
-## Contributing
+### Contributing
 
-This is an active open-source project. We are always open to people who want to
-use the code or contribute to it.
+We welcome contributions! Please read the [contribution guidelines](CONTRIBUTING.md) before submitting PRs.
 
-We've set up a separate document for our
-[contribution guidelines](CONTRIBUTING.md).
+## Authors & contributors
 
-Thank you for being involved! :heart_eyes:
+The original setup of this repository is created by [Klaas Schoute](https://github.com/klaasnicolaas) for [NetOS](https://net-os.com/) and [Mr.Green Boutique Offices](https://mrgreenoffices.nl/).
+
+Thanks to everyone who already contributed! ❤️
+
+<a href="https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=MrGreenBoutiqueOffices/home-assistant-netlink" />
+</a>
+
+For a full list of all authors and contributors, check [the contributor's page][contributors].
 
 ## License
 
@@ -192,9 +232,10 @@ This project is licensed under the LGPL-3.0-or-later License - see the [LICENSE]
 
 ## Credits
 
-Developed by [Klaas Schoute](https://github.com/klaasnicolaas) for [Mr. Green Boutique Offices](https://mrgreenoffices.nl/).
-
 Built with ❤️ using the [`pynetlink`](https://pypi.org/project/pynetlink/) library.
+
+<!-- Links -->
+[contributors]: https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink/graphs/contributors
 
 <!-- Badge Links -->
 [hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
