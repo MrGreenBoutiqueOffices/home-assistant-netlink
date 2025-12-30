@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -30,11 +31,13 @@ DESK_BUTTONS: list[NetlinkButtonEntityDescription] = [
     NetlinkButtonEntityDescription(
         key="desk_reset",
         translation_key="desk_reset",
+        entity_category=EntityCategory.CONFIG,
         press_fn=lambda client: client.reset_desk(),
     ),
     NetlinkButtonEntityDescription(
         key="desk_calibrate",
         translation_key="desk_calibrate",
+        entity_category=EntityCategory.CONFIG,
         entity_registry_enabled_default=False,
         press_fn=lambda client: client.calibrate_desk(),
     ),

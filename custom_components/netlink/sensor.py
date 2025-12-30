@@ -11,6 +11,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfLength
 from homeassistant.core import HomeAssistant
@@ -44,6 +45,7 @@ DESK_SENSORS: list[NetlinkSensorEntityDescription] = [
     NetlinkSensorEntityDescription(
         key="desk_error",
         translation_key="desk_error",
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda data: data.state.error,
     ),
 ]
@@ -75,6 +77,7 @@ DISPLAY_SENSORS: list[NetlinkSensorEntityDescription] = [
     NetlinkSensorEntityDescription(
         key="error",
         translation_key="display_error",
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda data: data.state.error,
     ),
 ]
