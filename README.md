@@ -22,6 +22,7 @@ This native Home Assistant integration provides **real-time control** over Netli
 - 🌐 **Browser control** - Refresh capabilities
 - 📊 **Rich entities** - Binary sensors, sensors, numbers, switches, selects, and buttons
 - 🏠 **Native HA integration** - Config flow, device registry, and proper entity organization
+- 🔑 **Reauthentication flow** - Automatic token refresh when authentication expires
 - 🎨 **Icons** - Entity icons defined via `icons.json`
 
 ## Requirements
@@ -173,6 +174,8 @@ This integration is fully compatible with the MQTT-based setup:
 - Verify bearer token matches device configuration
 - Check `REST_BEARER_TOKEN` environment variable
 - Don't include `Bearer ` prefix in token
+- If token expires, HA will automatically prompt for reauthentication
+- Navigate to **Settings** → **Devices & Services** → **Netlink** → **Configure** to update token manually
 
 ### Connection errors
 - Confirm device is reachable: `ping <device_ip>`

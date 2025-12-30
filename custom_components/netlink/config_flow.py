@@ -42,7 +42,7 @@ async def validate_connection(host: str, token: str, session) -> dict[str, str]:
         return {
             "device_id": device_info.device_id,
             "device_name": device_info.device_name,
-            "title": f"Netlink {device_info.device_name}",
+            "title": device_info.device_name,
         }
     finally:
         await client.disconnect()
@@ -168,6 +168,58 @@ class NetlinkConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={
                 "name": device_name,
+                "host": host,
+            },
+        )
+
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
+        """Handle reauthentication flow."""
+        # Store entry for later use
+        self.context["entry_data"] = entry_data
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm reauthentication and ask for new token."""
+        errors: dict[str, str] = {}
+        entry_data = self.context.get("entry_data", {})
+        host = entry_data.get(CONF_HOST, "")
+
+        if user_input is not None:
+            token = user_input[CONF_TOKEN]
+            session = async_get_clientsession(self.hass)
+
+            try:
+                # Validate connection with new token
+                await validate_connection(host, token, session)
+
+                # Update the config entry with new token
+                entry = await self.async_set_unique_id(entry_data.get(CONF_DEVICE_ID))
+                if entry:
+                    self.hass.config_entries.async_update_entry(
+                        entry,
+                        data={**entry.data, CONF_TOKEN: token},
+                    )
+                    await self.hass.config_entries.async_reload(entry.entry_id)
+                    return self.async_abort(reason="reauth_successful")
+
+            except NetlinkAuthenticationError:
+                errors["base"] = "invalid_auth"
+            except (NetlinkConnectionError, NetlinkTimeoutError):
+                errors["base"] = "cannot_connect"
+            except NetlinkError:
+                errors["base"] = "unknown"
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_TOKEN): str,
+                }
+            ),
+            errors=errors,
+            description_placeholders={
                 "host": host,
             },
         )

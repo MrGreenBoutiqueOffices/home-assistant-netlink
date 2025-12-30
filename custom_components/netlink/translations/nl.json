@@ -1,7 +1,8 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Apparaat is al geconfigureerd"
+      "already_configured": "Apparaat is al geconfigureerd",
+      "reauth_successful": "Herauthenticatie geslaagd"
     },
     "error": {
       "cannot_connect": "Kan geen verbinding maken",
@@ -30,6 +31,13 @@
         },
         "data_description": {
           "token": "Je vindt dit token in de Netlink webinterface."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Integratie opnieuw authenticeren",
+        "description": "Het authenticatie token voor {host} is niet meer geldig. Voer een nieuw token in.",
+        "data": {
+          "token": "Token"
         }
       }
     }
