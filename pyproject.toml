@@ -31,9 +31,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pre-commit-hooks>=6.0.0",
-    "prek>=0.2.25",
-    "ruff>=0.14.10",
+    "pre-commit-hooks==6.0.0",
+    "prek==0.2.25",
+    "ruff==0.14.10",
 ]
 
 [tool.hatch.metadata]
