@@ -85,8 +85,6 @@ If automatic discovery doesn't work:
 
 The device will be added immediately.
 
-> **Note**: Bearer token can be found in your Netlink device configuration (`REST_BEARER_TOKEN` environment variable).
-
 </details>
 
 ## Entities

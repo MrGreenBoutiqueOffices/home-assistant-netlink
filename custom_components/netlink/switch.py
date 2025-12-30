@@ -10,6 +10,7 @@ from homeassistant.components.switch import (
     SwitchEntity,
     SwitchEntityDescription,
 )
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -29,6 +30,7 @@ DESK_SWITCHES: list[NetlinkSwitchEntityDescription] = [
     NetlinkSwitchEntityDescription(
         key="beep",
         translation_key="desk_beep",
+        entity_category=EntityCategory.CONFIG,
         value_fn=lambda data: data.state.beep,
     ),
 ]
