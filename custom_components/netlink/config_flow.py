@@ -42,7 +42,7 @@ async def validate_connection(host: str, token: str, session) -> dict[str, str]:
         return {
             "device_id": device_info.device_id,
             "device_name": device_info.device_name,
-            "title": f"Netlink {device_info.device_name}",
+            "title": device_info.device_name,
         }
     finally:
         await client.disconnect()
