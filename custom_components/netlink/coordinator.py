@@ -9,6 +9,7 @@ from pynetlink import (
     DeviceInfo,
     Display,
     DisplaySummary,
+    NetlinkAuthenticationError,
     NetlinkClient,
     NetlinkDataError,
     NetlinkError,
@@ -19,6 +20,7 @@ from pynetlink import (
 )
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 import logging
@@ -78,6 +80,8 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "desk": desk_status,
                 "displays": display_states,
             }
+        except NetlinkAuthenticationError as err:
+            raise ConfigEntryAuthFailed(err) from err
         except (NetlinkError, NetlinkDataError) as err:
             raise UpdateFailed(err) from err
 

@@ -1,7 +1,8 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication successful"
     },
     "error": {
       "cannot_connect": "Failed to connect",
@@ -30,6 +31,13 @@
         },
         "data_description": {
           "token": "Find this token in the Netlink web interface."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate Integration",
+        "description": "The authentication token for {host} is no longer valid. Please enter a new token.",
+        "data": {
+          "token": "Token"
         }
       }
     }
