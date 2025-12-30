@@ -1,8 +1,9 @@
 # Netlink Home Assistant Integration
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![GitHub Release](https://img.shields.io/github/release/MrGreenBoutiqueOffices/home-assistant-netlink.svg)](https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink/releases)
-[![License](https://img.shields.io/github/license/MrGreenBoutiqueOffices/home-assistant-netlink.svg)](LICENSE)
+[![hacs_badge][hacs-badge]][hacs]
+[![GitHub Release][release-shield]][releases]
+[![Project Maintenance][maintenance-shield]][maintenance]
+[![License][license-shield]][license]
 
 Native Home Assistant integration for Netlink smart desk and monitor control systems.
 
@@ -194,3 +195,13 @@ This project is licensed under the LGPL-3.0-or-later License - see the [LICENSE]
 Developed by [Klaas Schoute](https://github.com/klaasnicolaas) for [Mr. Green Boutique Offices](https://mrgreenoffices.nl/).
 
 Built with ❤️ using the [`pynetlink`](https://pypi.org/project/pynetlink/) library.
+
+<!-- Badge Links -->
+[hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
+[hacs]: https://github.com/hacs/integration
+[release-shield]: https://img.shields.io/github/release/MrGreenBoutiqueOffices/home-assistant-netlink.svg
+[releases]: https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink/releases
+[maintenance-shield]: https://img.shields.io/maintenance/yes/2025.svg
+[maintenance]: https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink
+[license-shield]: https://img.shields.io/github/license/MrGreenBoutiqueOffices/home-assistant-netlink.svg
+[license]: LICENSE
