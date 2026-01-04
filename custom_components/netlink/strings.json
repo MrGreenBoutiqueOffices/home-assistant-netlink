@@ -2,7 +2,15 @@
   "config": {
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
-      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]",
+      "missing_host": "Cannot start OAuth flow without device host information.",
+      "oauth_error": "[%key:common::config_flow::abort::oauth2_error%]",
+      "oauth_failed": "[%key:common::config_flow::abort::oauth2_failed%]",
+      "oauth_timeout": "[%key:common::config_flow::abort::oauth2_timeout%]",
+      "user_rejected_authorize": "[%key:common::config_flow::abort::oauth2_user_rejected_authorize%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
@@ -11,26 +19,50 @@
     },
     "flow_title": "{name}",
     "step": {
+      "auth_method": {
+        "title": "Choose authentication method",
+        "description": "How do you want to authenticate?",
+        "menu_options": {
+          "oauth": "OAuth 2.0 (Recommended)",
+          "manual": "Manual token entry"
+        }
+      },
       "user": {
         "title": "Setup Netlink",
-        "description": "Enter the connection details for your Netlink device.",
+        "description": "Enter the IP address of your Netlink device.",
         "data": {
-          "host": "[%key:common::config_flow::data::host%]",
+          "host": "[%key:common::config_flow::data::host%]"
+        },
+        "data_description": {
+          "host": "The IP address or hostname of your Netlink device."
+        }
+      },
+      "manual": {
+        "title": "Manual token entry",
+        "description": "Enter your authentication token for {host}.",
+        "data": {
           "token": "[%key:common::config_flow::data::token%]"
         },
         "data_description": {
-          "host": "The IP address or hostname of your Netlink device.",
-          "token": "Find this token in the Netlink web interface."
+          "token": "Find this token in the Netlink web interface settings."
         }
       },
       "discovery_confirm": {
         "title": "Configure {name}",
+        "description": "Device found at {host}. Choose authentication method.",
+        "menu_options": {
+          "oauth": "[%key:component::netlink::config::step::auth_method::menu_options::oauth%]",
+          "discovery_manual": "[%key:component::netlink::config::step::auth_method::menu_options::manual%]"
+        }
+      },
+      "discovery_manual": {
+        "title": "[%key:component::netlink::config::step::discovery_confirm::title%]",
         "description": "Enter the authentication token for {name} at {host}.",
         "data": {
           "token": "[%key:common::config_flow::data::token%]"
         },
         "data_description": {
-          "token": "[%key:component::netlink::config::step::user::data_description::token%]"
+          "token": "[%key:component::netlink::config::step::manual::data_description::token%]"
         }
       },
       "reauth_confirm": {
