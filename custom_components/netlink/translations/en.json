@@ -66,6 +66,14 @@
           "token": "Find this token in the Netlink web interface settings."
         }
       },
+      "reauth": {
+        "title": "Reauthenticate Integration",
+        "description": "The authentication for {host} needs to be renewed. Choose authentication method.",
+        "menu_options": {
+          "reauth_oauth": "OAuth 2.0 (Recommended)",
+          "reauth_confirm": "Manual token entry"
+        }
+      },
       "reauth_confirm": {
         "title": "Reauthenticate Integration",
         "description": "The authentication token for {host} is no longer valid. Please enter a new token.",

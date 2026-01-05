@@ -98,8 +98,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         @self.client.on("disconnect")
         async def on_disconnect(_: dict[str, Any]) -> None:
             """Handle WebSocket disconnect events."""
-            self.last_update_success = False
-            self.async_update_listeners()
+            _LOGGER.debug("WebSocket disconnected for %s", self.name)
 
         @self.client.on(EVENT_DEVICE_INFO)
         async def on_device_info(data: dict[str, Any]) -> None:

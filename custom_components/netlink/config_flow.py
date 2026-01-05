@@ -15,9 +15,10 @@ from pynetlink import (
 )
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_TOKEN
 from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
@@ -60,6 +61,8 @@ class NetlinkConfigFlow(
         self._device_name: str | None = None
         self._device_id: str | None = None
         self._mac_address: str | None = None
+        self._netlink_reauth_entry_id: str | None = None
+        self._netlink_reauth_entry_data: dict[str, Any] | None = None
 
     @property
     def logger(self) -> logging.Logger:
@@ -80,6 +83,7 @@ class NetlinkConfigFlow(
         if user_input is not None:
             # Store host for later use
             self._host = user_input[CONF_HOST]
+            self.context["title_placeholders"] = {"name": self._host}
             # Now show auth method menu
             return await self.async_step_auth_method()
 
@@ -122,7 +126,7 @@ class NetlinkConfigFlow(
 
                 # Check if already configured
                 await self.async_set_unique_id(info["device_id"])
-                self._abort_if_unique_id_configured()
+                self._abort_if_unique_id_configured(updates={CONF_HOST: self._host})
 
                 # Create entry
                 _LOGGER.debug(
@@ -139,10 +143,10 @@ class NetlinkConfigFlow(
                     },
                 )
             except NetlinkAuthenticationError:
-                _LOGGER.error("Authentication failed for %s", self._host)
+                _LOGGER.debug("Authentication failed for %s", self._host)
                 errors["base"] = "invalid_auth"
             except (NetlinkConnectionError, NetlinkTimeoutError):
-                _LOGGER.error("Cannot connect to Netlink device at %s", self._host)
+                _LOGGER.debug("Cannot connect to Netlink device at %s", self._host)
                 errors["base"] = "cannot_connect"
             except NetlinkError:
                 _LOGGER.exception("Unknown error connecting to %s", self._host)
@@ -150,7 +154,15 @@ class NetlinkConfigFlow(
 
         return self.async_show_form(
             step_id="manual",
-            data_schema=vol.Schema({vol.Required(CONF_TOKEN): str}),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_TOKEN): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD
+                        )
+                    )
+                }
+            ),
             errors=errors,
             description_placeholders={
                 "host": self._host or "unknown",
@@ -171,10 +183,35 @@ class NetlinkConfigFlow(
 
             info = await _validate_connection(self._host, token, session)
 
-            # Check if already configured
+            # Check if this is a reauth flow
+            if (
+                self.context.get("source") == SOURCE_REAUTH
+                and self._netlink_reauth_entry_id
+                and self._netlink_reauth_entry_data is not None
+            ):
+                # Reauthentication - update existing entry
+                entry = self.hass.config_entries.async_get_entry(
+                    self._netlink_reauth_entry_id
+                )
+                if entry is not None:
+                    self.hass.config_entries.async_update_entry(
+                        entry,
+                        data={
+                            **entry.data,
+                            CONF_TOKEN: token,
+                            CONF_AUTH_IMPLEMENTATION: data[CONF_AUTH_IMPLEMENTATION],
+                        },
+                    )
+                    await self.hass.config_entries.async_reload(entry.entry_id)
+                    _LOGGER.debug(
+                        "OAuth reauthentication successful for %s", self._host
+                    )
+                    return self.async_abort(reason="reauth_successful")
+
+            # Normal setup - check if already configured
             if not self.unique_id:
                 await self.async_set_unique_id(info["device_id"])
-            self._abort_if_unique_id_configured()
+            self._abort_if_unique_id_configured(updates={CONF_HOST: self._host})
 
             # Create entry
             entry_data = {
@@ -196,10 +233,10 @@ class NetlinkConfigFlow(
                 data=entry_data,
             )
         except NetlinkAuthenticationError:
-            _LOGGER.error("OAuth authentication failed for %s", self._host)
+            _LOGGER.debug("OAuth authentication failed for %s", self._host)
             return self.async_abort(reason="invalid_auth")
         except (NetlinkConnectionError, NetlinkTimeoutError):
-            _LOGGER.error("Cannot connect to Netlink device at %s", self._host)
+            _LOGGER.debug("Cannot connect to Netlink device at %s", self._host)
             return self.async_abort(reason="cannot_connect")
         except NetlinkError:
             _LOGGER.exception("Unknown error during OAuth flow for %s", self._host)
@@ -214,7 +251,7 @@ class NetlinkConfigFlow(
         properties = discovery_info.properties or {}
         device_id = properties.get("device_id")
         device_name = properties.get("device_name")
-        mac_address = discovery_info.mac_address
+        mac_address = getattr(discovery_info, "mac_address", None)
 
         _LOGGER.debug("Discovered Netlink device %s at %s", device_name, host)
 
@@ -233,11 +270,6 @@ class NetlinkConfigFlow(
         self._device_name = device_name
         self._device_id = device_id
         self._mac_address = mac_address
-
-        self.context["device_id"] = device_id
-        self.context["device_name"] = device_name
-        self.context["host"] = host
-        self.context["mac_address"] = mac_address
         self.context["title_placeholders"] = {"name": device_name}
         return await self.async_step_discovery_confirm()
 
@@ -263,6 +295,9 @@ class NetlinkConfigFlow(
         host = self._host or self.context.get("host")
         mac_address = self._mac_address or self.context.get("mac_address")
 
+        if not host:
+            return self.async_abort(reason="missing_host")
+
         if user_input is not None:
             token = user_input[CONF_TOKEN]
             session = async_get_clientsession(self.hass)
@@ -273,7 +308,11 @@ class NetlinkConfigFlow(
 
                 if not self.unique_id:
                     await self.async_set_unique_id(info["device_id"])
-                    self._abort_if_unique_id_configured()
+
+                updates: dict[str, Any] = {CONF_HOST: host}
+                if mac_address:
+                    updates[CONF_MAC_ADDRESS] = mac_address
+                self._abort_if_unique_id_configured(updates=updates)
 
                 # Create entry
                 data = {
@@ -294,10 +333,10 @@ class NetlinkConfigFlow(
                     data=data,
                 )
             except NetlinkAuthenticationError:
-                _LOGGER.error("Authentication failed for %s", host)
+                _LOGGER.debug("Authentication failed for %s", host)
                 errors["base"] = "invalid_auth"
             except (NetlinkConnectionError, NetlinkTimeoutError):
-                _LOGGER.error("Cannot connect to Netlink device at %s", host)
+                _LOGGER.debug("Cannot connect to Netlink device at %s", host)
                 errors["base"] = "cannot_connect"
             except NetlinkError:
                 _LOGGER.exception("Unknown error connecting to %s", host)
@@ -307,7 +346,11 @@ class NetlinkConfigFlow(
             step_id="discovery_manual",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_TOKEN): str,
+                    vol.Required(CONF_TOKEN): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD
+                        )
+                    ),
                 }
             ),
             errors=errors,
@@ -317,19 +360,44 @@ class NetlinkConfigFlow(
             },
         )
 
-    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle reauthentication flow."""
-        _LOGGER.debug("Starting reauthentication for %s", entry_data.get(CONF_HOST))
-        # Store entry for later use
-        self.context["entry_data"] = entry_data
-        return await self.async_step_reauth_confirm()
+        # On first call, entry_data contains the config entry data
+        # On subsequent calls (e.g., after menu selection), it's None
+        if entry_data is not None:
+            # Store entry and connection info for later use
+            self._netlink_reauth_entry_data = entry_data
+            self._netlink_reauth_entry_id = self.context.get("entry_id")
+            self._host = entry_data.get(CONF_HOST)
+            self._device_id = entry_data.get(CONF_DEVICE_ID)
+            self._mac_address = entry_data.get(CONF_MAC_ADDRESS)
+            if self._host:
+                self.context["title_placeholders"] = {"name": self._host}
+            _LOGGER.debug("Starting reauthentication for %s", self._host)
+
+        # Show menu to choose reauthentication method
+        return self.async_show_menu(
+            step_id="reauth",
+            menu_options=["reauth_oauth", "reauth_confirm"],
+            description_placeholders={
+                "host": self._host or "unknown",
+            },
+        )
+
+    async def async_step_reauth_oauth(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle OAuth reauthentication."""
+        return await self.async_step_pick_implementation(user_input)
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Confirm reauthentication and ask for new token."""
         errors: dict[str, str] = {}
-        entry_data = self.context.get("entry_data", {})
+        entry_data = self._netlink_reauth_entry_data or {}
         host = entry_data.get(CONF_HOST, "")
 
         if user_input is not None:
@@ -341,8 +409,14 @@ class NetlinkConfigFlow(
                 await _validate_connection(host, token, session)
 
                 # Update the config entry with new token
-                entry = await self.async_set_unique_id(entry_data.get(CONF_DEVICE_ID))
-                if entry:
+                entry = (
+                    self.hass.config_entries.async_get_entry(
+                        self._netlink_reauth_entry_id
+                    )
+                    if self._netlink_reauth_entry_id
+                    else None
+                )
+                if entry is not None:
                     self.hass.config_entries.async_update_entry(
                         entry,
                         data={**entry.data, CONF_TOKEN: token},
@@ -352,12 +426,10 @@ class NetlinkConfigFlow(
                     return self.async_abort(reason="reauth_successful")
 
             except NetlinkAuthenticationError:
-                _LOGGER.error(
-                    "Reauthentication failed for %s: invalid credentials", host
-                )
+                _LOGGER.debug("Reauthentication failed for %s: invalid auth", host)
                 errors["base"] = "invalid_auth"
             except (NetlinkConnectionError, NetlinkTimeoutError):
-                _LOGGER.error(
+                _LOGGER.debug(
                     "Cannot connect to Netlink device at %s during reauth", host
                 )
                 errors["base"] = "cannot_connect"
@@ -369,7 +441,11 @@ class NetlinkConfigFlow(
             step_id="reauth_confirm",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_TOKEN): str,
+                    vol.Required(CONF_TOKEN): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD
+                        )
+                    ),
                 }
             ),
             errors=errors,
@@ -388,20 +464,24 @@ class NetlinkConfigFlow(
 
         _LOGGER.debug("Starting OAuth flow for %s", self._host)
 
+        implementation_key = self._device_id or self._host
+
         # Create device-specific LocalOAuth2Implementation
         implementation = config_entry_oauth2_flow.LocalOAuth2Implementation(
             self.hass,
-            self._device_id or self._host,
-            client_id="home-assistant",
-            client_secret="",  # Public client - no secret needed
-            authorize_url=f"http://{self._host}/oauth/authorize",  # Frontend route
-            token_url=f"http://{self._host}/api/oauth/token",  # API endpoint
+            implementation_key,
+            "home-assistant",
+            "",  # Public client - no secret needed
+            f"http://{self._host}/oauth/authorize",
+            f"http://{self._host}/api/oauth/token",
         )
 
-        # Register implementation for this flow
+        # Register the implementation
         config_entry_oauth2_flow.async_register_implementation(
             self.hass, DOMAIN, implementation
         )
 
         # Continue with standard OAuth flow
-        return await super().async_step_pick_implementation(user_input)
+        return await super().async_step_pick_implementation(
+            {"implementation": implementation_key}
+        )

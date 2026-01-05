@@ -65,6 +65,14 @@
           "token": "[%key:component::netlink::config::step::manual::data_description::token%]"
         }
       },
+      "reauth": {
+        "title": "[%key:common::config_flow::title::reauth%]",
+        "description": "The authentication for {host} needs to be renewed. Choose authentication method.",
+        "menu_options": {
+          "reauth_oauth": "[%key:component::netlink::config::step::auth_method::menu_options::oauth%]",
+          "reauth_confirm": "[%key:component::netlink::config::step::auth_method::menu_options::manual%]"
+        }
+      },
       "reauth_confirm": {
         "title": "[%key:common::config_flow::title::reauth%]",
         "description": "The authentication token for {host} is no longer valid. Please enter a new token.",

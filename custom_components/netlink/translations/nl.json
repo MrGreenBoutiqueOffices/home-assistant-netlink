@@ -66,6 +66,14 @@
           "token": "Je vindt dit token in de Netlink webinterface instellingen."
         }
       },
+      "reauth": {
+        "title": "Integratie opnieuw authenticeren",
+        "description": "De authenticatie voor {host} moet worden vernieuwd. Kies authenticatiemethode.",
+        "menu_options": {
+          "reauth_oauth": "OAuth 2.0 (Aanbevolen)",
+          "reauth_confirm": "Handmatig token invoeren"
+        }
+      },
       "reauth_confirm": {
         "title": "Integratie opnieuw authenticeren",
         "description": "Het authenticatie token voor {host} is niet meer geldig. Voer een nieuw token in.",

@@ -23,7 +23,7 @@ This native Home Assistant integration provides **real-time control** over Netli
 - 🌐 **Browser control** - Refresh capabilities
 - 📊 **Rich entities** - Binary sensors, sensors, numbers, switches, selects, and buttons
 - 🏠 **Native HA integration** - Config flow, device registry, and proper entity organization
-- 🔑 **Reauthentication flow** - Automatic token refresh when authentication expires
+- 🔑 **Reauthentication flow** - OAuth or manual re-authentication when needed
 - 🔍 **Diagnostics support** - Download diagnostic data for troubleshooting
 - 🎨 **Icons** - Entity icons defined via `icons.json`
 
@@ -181,13 +181,14 @@ This integration is fully compatible with the MQTT-based setup:
 - **OAuth 2.0** (Recommended):
   - Ensure the device OAuth server is running
   - Check that you can access `http://<device-ip>/oauth/authorize` in your browser
-  - **Token validity**: Access tokens expire after 1 year, but refresh automatically without user intervention
-  - Refresh tokens are valid for 100 years (effectively permanent - no re-authentication needed)
-  - Home Assistant handles token renewal transparently in the background
+  - **Token validity**: Long-lived tokens with 100 year expiry (effectively permanent for local devices)
+  - **No refresh needed**: Tokens remain valid for the device lifetime
+  - **Re-authentication**: Only needed if device `REST_BEARER_TOKEN` changes or device is reset
+  - If authentication expires, Home Assistant triggers automatic reauth flow - choose OAuth or manual token entry
 - **Manual Token**:
   - Verify bearer token matches device configuration
   - Check `REST_BEARER_TOKEN` environment variable
-  - Manual tokens do not expire (static configuration)
+  - Tokens do not expire (static configuration)
   - Navigate to **Settings** → **Devices & Services** → **Netlink** → **Configure** to update token manually
 
 ### Connection errors
