@@ -265,7 +265,7 @@ Built with ❤️ using the [`pynetlink`](https://pypi.org/project/pynetlink/) l
 [hacs]: https://github.com/hacs/integration
 [release-shield]: https://img.shields.io/github/release/MrGreenBoutiqueOffices/home-assistant-netlink.svg
 [releases]: https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink/releases
-[maintenance-shield]: https://img.shields.io/maintenance/yes/2025.svg
+[maintenance-shield]: https://img.shields.io/maintenance/yes/2026.svg
 [maintenance]: https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink
 [license-shield]: https://img.shields.io/github/license/MrGreenBoutiqueOffices/home-assistant-netlink.svg
 [license]: LICENSE
