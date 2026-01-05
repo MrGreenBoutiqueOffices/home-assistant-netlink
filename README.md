@@ -169,52 +169,7 @@ This integration is fully compatible with the MQTT-based setup:
 
 ## Troubleshooting
 
-<details>
-<summary><b>🔧 Common Issues</b> (click to expand)</summary>
-
-### Device not discovered
-- Ensure mDNS/Zeroconf is enabled on your network
-- Try **manual setup** instead
-- Check firewall rules (port 80 for REST/WebSocket)
-
-### Authentication errors
-- **OAuth 2.0** (Recommended):
-  - Ensure the device OAuth server is running
-  - Check that you can access `http://<device-ip>/oauth/authorize` in your browser
-  - **Token validity**: Long-lived tokens with 100 year expiry (effectively permanent for local devices)
-  - **No refresh needed**: Tokens remain valid for the device lifetime
-  - **Re-authentication**: Only needed if device `REST_BEARER_TOKEN` changes or device is reset
-  - If authentication expires, Home Assistant triggers automatic reauth flow - choose OAuth or manual token entry
-- **Manual Token**:
-  - Verify bearer token matches device configuration
-  - Check `REST_BEARER_TOKEN` environment variable
-  - Tokens do not expire (static configuration)
-  - Navigate to **Settings** → **Devices & Services** → **Netlink** → **Configure** to update token manually
-
-### Connection errors
-- Confirm device is reachable: `ping <device_ip>`
-- Review HA logs: **Settings** → **System** → **Logs**
-- Check WebSocket connection in logs
-
-### Entities unavailable
-- WebSocket connection may be down
-- Integration auto-reconnects (exponential backoff: 1s → 60s)
-- Entities show "unavailable" during disconnection
-
-### Display controls not appearing
-- Display must support the feature (brightness/volume/source)
-- Entities are created dynamically based on capabilities
-- Check device logs for display detection
-
-### Getting diagnostic information
-- Navigate to **Settings** → **Devices & Services** → **Netlink**
-- Click on your Netlink device
-- Click **Download diagnostics** (three dots menu)
-- Share the downloaded JSON file when reporting issues
-- Diagnostics include: device info, coordinator state, connection status, entity states
-- Sensitive data (tokens) is automatically redacted
-
-</details>
+See [docs/faq.md](docs/faq.md) for common issues and troubleshooting steps.
 
 ## Development
 
