@@ -35,27 +35,27 @@ This native Home Assistant integration provides **real-time control** over Netli
 
 ## Installation
 
-<details>
-<summary><b>📦 Installation Methods</b> (click to expand)</summary>
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=MrGreenBoutiqueOffices&repository=home-assistant-netlink&category=integration)
 
-### HACS (Custom Repository)
+The recommended way to install this integration is via **HACS**. If you prefer, you can also install it manually.
 
-1. Open HACS in Home Assistant
-2. Go to "Integrations"
-3. Click the three dots (⋮) in the top right → "Custom repositories"
-4. Add repository URL: `https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink`
-5. Category: "Integration"
-6. Click "Add"
-7. Install "Netlink" from the integrations list
-8. Restart Home Assistant
+### Option 1 — HACS (Recommended)
 
-### Manual Installation
+1. Click the button above (or open **HACS** in Home Assistant)
+2. Go to **HACS** → **Integrations**
+3. Add this repository as a custom repository:
+  - Open the menu (⋮) → **Custom repositories**
+  - Repository: `https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink`
+  - Category: **Integration**
+4. Search for **Netlink** and install it
+5. Restart Home Assistant
+
+### Option 2 — Manual
 
 1. Download the [latest release](https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink/releases)
-2. Extract and copy `custom_components/netlink` to your HA config directory
+2. Copy `custom_components/netlink` into your Home Assistant config directory:
+  - `<config>/custom_components/netlink`
 3. Restart Home Assistant
-
-</details>
 
 ## Configuration
 
