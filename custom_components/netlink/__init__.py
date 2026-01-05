@@ -32,8 +32,6 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Netlink from a config entry."""
-    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
-
     session = async_get_clientsession(hass)
 
     # Create client
@@ -87,6 +85,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     return True
 
