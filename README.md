@@ -17,20 +17,21 @@ This native Home Assistant integration provides **real-time control** over Netli
 
 - 🔌 **WebSocket real-time updates** - Instant state changes via push notifications
 - 🔍 **Automatic discovery** - Devices found via mDNS/Zeroconf
+- 🔐 **OAuth 2.0 support** - Secure authentication with local OAuth server (recommended)
 - 🪑 **Desk control** - Height adjustment, calibration, and status monitoring
 - 🖥️ **Display control** - Power, brightness, volume, and input source
 - 🌐 **Browser control** - Refresh capabilities
 - 📊 **Rich entities** - Binary sensors, sensors, numbers, switches, selects, and buttons
 - 🏠 **Native HA integration** - Config flow, device registry, and proper entity organization
-- 🔑 **Reauthentication flow** - Automatic token refresh when authentication expires
+- 🔑 **Reauthentication flow** - OAuth or manual re-authentication when needed
 - 🔍 **Diagnostics support** - Download diagnostic data for troubleshooting
 - 🎨 **Icons** - Entity icons defined via `icons.json`
 
 ## Requirements
 
 - Home Assistant >= 2025.12.0
-- Netlink device with REST API and WebSocket support
-- Bearer token for authentication
+- Netlink device with REST API, WebSocket, and OAuth 2.0 support
+- Authentication via OAuth 2.0 (recommended) or bearer token
 
 ## Installation
 
@@ -69,8 +70,10 @@ If your Netlink device is discovered via mDNS/Zeroconf, it will appear automatic
 
 1. Go to **Settings** → **Devices & Services**
 2. Find the discovered Netlink device in the list
-3. Click **"Add"**
-4. Enter the **bearer token**
+3. Click **"Configure"**
+4. Choose authentication method:
+   - **OAuth 2.0** (Recommended): Click **"OAuth 2.0"** and follow the browser redirect to authorize
+   - **Manual Token**: Click **"Manual token entry"** and enter your bearer token
 5. Click **"Submit"**
 
 The device will be added immediately.
@@ -82,8 +85,11 @@ If automatic discovery doesn't work:
 1. Go to **Settings** → **Devices & Services**
 2. Click **"+ Add Integration"**
 3. Search for **"Netlink"**
-4. Enter the **host** (IP address or hostname) and **bearer token**
-5. Click **"Submit"**
+4. Enter the **host** (IP address or hostname)
+5. Choose authentication method:
+   - **OAuth 2.0** (Recommended): Click **"OAuth 2.0"** and follow the browser redirect to authorize
+   - **Manual Token**: Click **"Manual token entry"** and enter your bearer token
+6. Click **"Submit"**
 
 The device will be added immediately.
 
@@ -172,11 +178,18 @@ This integration is fully compatible with the MQTT-based setup:
 - Check firewall rules (port 80 for REST/WebSocket)
 
 ### Authentication errors
-- Verify bearer token matches device configuration
-- Check `REST_BEARER_TOKEN` environment variable
-- Don't include `Bearer ` prefix in token
-- If token expires, HA will automatically prompt for reauthentication
-- Navigate to **Settings** → **Devices & Services** → **Netlink** → **Configure** to update token manually
+- **OAuth 2.0** (Recommended):
+  - Ensure the device OAuth server is running
+  - Check that you can access `http://<device-ip>/oauth/authorize` in your browser
+  - **Token validity**: Long-lived tokens with 100 year expiry (effectively permanent for local devices)
+  - **No refresh needed**: Tokens remain valid for the device lifetime
+  - **Re-authentication**: Only needed if device `REST_BEARER_TOKEN` changes or device is reset
+  - If authentication expires, Home Assistant triggers automatic reauth flow - choose OAuth or manual token entry
+- **Manual Token**:
+  - Verify bearer token matches device configuration
+  - Check `REST_BEARER_TOKEN` environment variable
+  - Tokens do not expire (static configuration)
+  - Navigate to **Settings** → **Devices & Services** → **Netlink** → **Configure** to update token manually
 
 ### Connection errors
 - Confirm device is reachable: `ping <device_ip>`

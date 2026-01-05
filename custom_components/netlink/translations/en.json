@@ -2,7 +2,16 @@
   "config": {
     "abort": {
       "already_configured": "Device is already configured",
-      "reauth_successful": "Re-authentication successful"
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "missing_host": "Cannot start OAuth flow without device host information.",
+      "oauth_error": "Received invalid token data.",
+      "oauth_failed": "Error while obtaining access token.",
+      "oauth_timeout": "Timeout resolving OAuth token.",
+      "oauth_unauthorized": "OAuth authorization error while obtaining access token.",
+      "reauth_successful": "Re-authentication successful",
+      "unknown": "Unknown error",
+      "user_rejected_authorize": "Account linking rejected: {error}"
     },
     "error": {
       "cannot_connect": "Failed to connect",
@@ -11,26 +20,58 @@
     },
     "flow_title": "{name}",
     "step": {
+      "auth_method": {
+        "title": "Choose authentication method",
+        "description": "How do you want to authenticate?",
+        "menu_options": {
+          "oauth": "OAuth 2.0 (Recommended)",
+          "manual": "Manual token entry"
+        }
+      },
       "user": {
         "title": "Setup Netlink",
-        "description": "Enter the connection details for your Netlink device.",
+        "description": "Enter the IP address of your Netlink device.",
         "data": {
-          "host": "Host",
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "The IP address or hostname of your Netlink device."
+        }
+      },
+      "manual": {
+        "title": "Manual token entry",
+        "description": "Enter your authentication token for {host}.",
+        "data": {
           "token": "Token"
         },
         "data_description": {
-          "host": "The IP address or hostname of your Netlink device.",
-          "token": "Find this token in the Netlink web interface."
+          "token": "Find this token in the Netlink web interface settings."
         }
       },
       "discovery_confirm": {
+        "title": "Configure {name}",
+        "description": "Device found at {host}. Choose authentication method.",
+        "menu_options": {
+          "oauth": "OAuth 2.0 (Recommended)",
+          "discovery_manual": "Manual token entry"
+        }
+      },
+      "discovery_manual": {
         "title": "Configure {name}",
         "description": "Enter the authentication token for {name} at {host}.",
         "data": {
           "token": "Token"
         },
         "data_description": {
-          "token": "Find this token in the Netlink web interface."
+          "token": "Find this token in the Netlink web interface settings."
+        }
+      },
+      "reauth": {
+        "title": "Reauthenticate Integration",
+        "description": "The authentication for {host} needs to be renewed. Choose authentication method.",
+        "menu_options": {
+          "reauth_oauth": "OAuth 2.0 (Recommended)",
+          "reauth_confirm": "Manual token entry"
         }
       },
       "reauth_confirm": {

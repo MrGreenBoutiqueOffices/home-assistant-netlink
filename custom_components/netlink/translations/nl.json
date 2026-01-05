@@ -2,7 +2,16 @@
   "config": {
     "abort": {
       "already_configured": "Apparaat is al geconfigureerd",
-      "reauth_successful": "Herauthenticatie geslaagd"
+      "cannot_connect": "Kan geen verbinding maken",
+      "invalid_auth": "Ongeldige authenticatie",
+      "missing_host": "Kan OAuth flow niet starten zonder apparaat host informatie.",
+      "oauth_error": "Ongeldige token gegevens ontvangen.",
+      "oauth_failed": "Fout bij het verkrijgen van toegangstoken.",
+      "oauth_timeout": "Time-out bij het oplossen van OAuth token.",
+      "oauth_unauthorized": "OAuth autorisatiefout bij het verkrijgen van toegangstoken.",
+      "reauth_successful": "Herauthenticatie geslaagd",
+      "unknown": "Onbekende fout",
+      "user_rejected_authorize": "Accountkoppeling geweigerd: {error}"
     },
     "error": {
       "cannot_connect": "Kan geen verbinding maken",
@@ -11,26 +20,58 @@
     },
     "flow_title": "{name}",
     "step": {
+      "auth_method": {
+        "title": "Kies authenticatiemethode",
+        "description": "Hoe wil je authenticeren?",
+        "menu_options": {
+          "oauth": "OAuth 2.0 (Aanbevolen)",
+          "manual": "Handmatig token invoeren"
+        }
+      },
       "user": {
         "title": "Netlink instellen",
-        "description": "Voer de verbindingsgegevens van je Netlink apparaat in.",
+        "description": "Voer het IP-adres van je Netlink apparaat in.",
         "data": {
-          "host": "Host",
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "Het IP-adres of hostname van je Netlink apparaat."
+        }
+      },
+      "manual": {
+        "title": "Handmatig token invoeren",
+        "description": "Voer je authenticatie token in voor {host}.",
+        "data": {
           "token": "Token"
         },
         "data_description": {
-          "host": "Het IP-adres of hostname van je Netlink apparaat.",
-          "token": "Je vindt dit token in de Netlink webinterface."
+          "token": "Je vindt dit token in de Netlink webinterface instellingen."
         }
       },
       "discovery_confirm": {
+        "title": "Configureer {name}",
+        "description": "Apparaat gevonden op {host}. Kies authenticatiemethode.",
+        "menu_options": {
+          "oauth": "OAuth 2.0 (Aanbevolen)",
+          "discovery_manual": "Handmatig token invoeren"
+        }
+      },
+      "discovery_manual": {
         "title": "Configureer {name}",
         "description": "Voer het authenticatie token in voor {name} op {host}.",
         "data": {
           "token": "Token"
         },
         "data_description": {
-          "token": "Je vindt dit token in de Netlink webinterface."
+          "token": "Je vindt dit token in de Netlink webinterface instellingen."
+        }
+      },
+      "reauth": {
+        "title": "Integratie opnieuw authenticeren",
+        "description": "De authenticatie voor {host} moet worden vernieuwd. Kies authenticatiemethode.",
+        "menu_options": {
+          "reauth_oauth": "OAuth 2.0 (Aanbevolen)",
+          "reauth_confirm": "Handmatig token invoeren"
         }
       },
       "reauth_confirm": {

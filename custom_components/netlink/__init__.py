@@ -25,6 +25,11 @@ from .entity import _get_suggested_area
 _LOGGER = logging.getLogger(__name__)
 
 
+async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options or config entry updates."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Netlink from a config entry."""
     session = async_get_clientsession(hass)
@@ -59,15 +64,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register the main Netlink controller device
     device_registry = dr.async_get(hass)
     mac_address = entry.data.get(CONF_MAC_ADDRESS)
-    device_name = coordinator.device_info.device_name
+    device_info = coordinator.device_info
+    if device_info is None:
+        raise ConfigEntryNotReady("Device info not available after setup")
+    device_name = device_info.device_name
 
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, f"netlink-{entry.data[CONF_DEVICE_ID]}")},
         name=device_name,
         manufacturer="NetOS",
-        model=coordinator.device_info.model,
-        sw_version=coordinator.device_info.version,
+        model=device_info.model,
+        sw_version=device_info.version,
         configuration_url=f"http://{entry.data[CONF_HOST]}",
         connections={(dr.CONNECTION_NETWORK_MAC, mac_address)}
         if mac_address
@@ -77,6 +85,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     return True
 
