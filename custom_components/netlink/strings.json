@@ -48,8 +48,8 @@
         }
       },
       "discovery_confirm": {
-        "title": "Configure {name}",
-        "description": "Device found at {host}. Choose authentication method.",
+        "title": "Configure device",
+        "description": "Device {name} found at {host}. Choose authentication method.",
         "menu_options": {
           "oauth": "[%key:component::netlink::config::step::auth_method::menu_options::oauth%]",
           "discovery_manual": "[%key:component::netlink::config::step::auth_method::menu_options::manual%]"

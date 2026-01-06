@@ -281,9 +281,6 @@ class NetlinkConfigFlow(
         return self.async_show_menu(
             step_id="discovery_confirm",
             menu_options=["oauth", "discovery_manual"],
-            title_placeholders={
-                "name": device_name,
-            },
             description_placeholders={
                 "name": device_name,
                 "host": self._host or "unknown",
@@ -358,9 +355,6 @@ class NetlinkConfigFlow(
                 }
             ),
             errors=errors,
-            title_placeholders={
-                "name": device_name,
-            },
             description_placeholders={
                 "name": device_name,
                 "host": host,
