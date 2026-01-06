@@ -50,7 +50,7 @@
       },
       "discovery_confirm": {
         "title": "Configureer apparaat",
-        "description": "Apparaat {name} gevonden op {host}. Kies authenticatiemethode.",
+        "description": "We hebben {name} gevonden op {host}. Kies hoe je wilt authenticeren.",
         "menu_options": {
           "oauth": "OAuth 2.0 (Aanbevolen)",
           "discovery_manual": "Handmatig token invoeren"
@@ -58,7 +58,7 @@
       },
       "discovery_manual": {
         "title": "Configureer apparaat",
-        "description": "Voer het authenticatie token in voor {name} op {host}.",
+        "description": "Voer het authenticatietoken in voor {name} op {host}.",
         "data": {
           "token": "Token"
         },
