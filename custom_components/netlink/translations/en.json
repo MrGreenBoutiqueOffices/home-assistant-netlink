@@ -49,15 +49,15 @@
         }
       },
       "discovery_confirm": {
-        "title": "Configure {name}",
-        "description": "Device found at {host}. Choose authentication method.",
+        "title": "Configure device",
+        "description": "Device {name} found at {host}. Choose authentication method.",
         "menu_options": {
           "oauth": "OAuth 2.0 (Recommended)",
           "discovery_manual": "Manual token entry"
         }
       },
       "discovery_manual": {
-        "title": "Configure {name}",
+        "title": "Configure device",
         "description": "Enter the authentication token for {name} at {host}.",
         "data": {
           "token": "Token"
