@@ -22,7 +22,7 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
-from .const import CONF_AUTH_IMPLEMENTATION, CONF_DEVICE_ID, CONF_MAC_ADDRESS, DOMAIN
+from .const import CONF_AUTH_IMPLEMENTATION, CONF_DEVICE_ID, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ async def _validate_connection(
 ) -> dict[str, str]:
     """Validate the connection to a Netlink device.
 
-    Returns a dict with device_id and device_name on success.
+    Returns a dict with device info on success.
     Raises NetlinkAuthenticationError, NetlinkConnectionError, or NetlinkError on failure.
     """
     client = NetlinkClient(host=host, token=token, session=session)
@@ -43,6 +43,7 @@ async def _validate_connection(
     return {
         "device_id": device_info.device_id,
         "device_name": device_info.device_name,
+        "mac_address": device_info.mac_address,
     }
 
 
@@ -60,7 +61,6 @@ class NetlinkConfigFlow(
         self._host: str | None = None
         self._device_name: str | None = None
         self._device_id: str | None = None
-        self._mac_address: str | None = None
         self._netlink_reauth_entry_id: str | None = None
         self._netlink_reauth_entry_data: dict[str, Any] | None = None
 
@@ -73,6 +73,20 @@ class NetlinkConfigFlow(
     def extra_authorize_data(self) -> dict[str, Any]:
         """Extra data that needs to be appended to the authorize url."""
         return {"response_type": "code"}
+
+    def _register_oauth_implementation(self, key: str) -> None:
+        """Register a device-specific OAuth implementation."""
+        implementation = config_entry_oauth2_flow.LocalOAuth2Implementation(
+            self.hass,
+            key,
+            "home-assistant",
+            "",  # Public client - no secret needed
+            f"http://{self._host}/oauth/authorize",
+            f"http://{self._host}/api/oauth/token",
+        )
+        config_entry_oauth2_flow.async_register_implementation(
+            self.hass, DOMAIN, implementation
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -126,7 +140,11 @@ class NetlinkConfigFlow(
 
                 # Check if already configured
                 await self.async_set_unique_id(info["device_id"])
-                self._abort_if_unique_id_configured(updates={CONF_HOST: self._host})
+                self._abort_if_unique_id_configured(
+                    updates={
+                        CONF_HOST: self._host,
+                    }
+                )
 
                 # Create entry
                 _LOGGER.debug(
@@ -182,6 +200,12 @@ class NetlinkConfigFlow(
                 return self.async_abort(reason="missing_host")
 
             info = await _validate_connection(self._host, token, session)
+            device_id = info["device_id"]
+            self._device_id = self._device_id or device_id
+            desired_implementation = device_id
+
+            if data.get(CONF_AUTH_IMPLEMENTATION) != desired_implementation:
+                self._register_oauth_implementation(desired_implementation)
 
             # Check if this is a reauth flow
             if (
@@ -199,7 +223,7 @@ class NetlinkConfigFlow(
                         data={
                             **entry.data,
                             CONF_TOKEN: token,
-                            CONF_AUTH_IMPLEMENTATION: data[CONF_AUTH_IMPLEMENTATION],
+                            CONF_AUTH_IMPLEMENTATION: desired_implementation,
                         },
                     )
                     await self.hass.config_entries.async_reload(entry.entry_id)
@@ -210,18 +234,16 @@ class NetlinkConfigFlow(
 
             # Normal setup - check if already configured
             if not self.unique_id:
-                await self.async_set_unique_id(info["device_id"])
+                await self.async_set_unique_id(device_id)
             self._abort_if_unique_id_configured(updates={CONF_HOST: self._host})
 
             # Create entry
             entry_data = {
                 CONF_HOST: self._host,
                 CONF_TOKEN: token,
-                CONF_DEVICE_ID: self._device_id or info["device_id"],
-                CONF_AUTH_IMPLEMENTATION: data[CONF_AUTH_IMPLEMENTATION],
+                CONF_DEVICE_ID: device_id,
+                CONF_AUTH_IMPLEMENTATION: desired_implementation,
             }
-            if self._mac_address:
-                entry_data[CONF_MAC_ADDRESS] = self._mac_address
 
             _LOGGER.debug(
                 "Creating config entry for %s at %s via OAuth",
@@ -251,8 +273,6 @@ class NetlinkConfigFlow(
         properties = discovery_info.properties or {}
         device_id = properties.get("device_id")
         device_name = properties.get("device_name")
-        mac_address = getattr(discovery_info, "mac_address", None)
-
         _LOGGER.debug("Discovered Netlink device %s at %s", device_name, host)
 
         if not device_id or not device_name:
@@ -260,16 +280,12 @@ class NetlinkConfigFlow(
 
         if device_id:
             await self.async_set_unique_id(device_id)
-            updates = {CONF_HOST: host}
-            if mac_address:
-                updates[CONF_MAC_ADDRESS] = mac_address
-            self._abort_if_unique_id_configured(updates=updates)
+            self._abort_if_unique_id_configured(updates={CONF_HOST: host})
 
         # Store for OAuth flow
         self._host = host
         self._device_name = device_name
         self._device_id = device_id
-        self._mac_address = mac_address
         self.context["title_placeholders"] = {"name": device_name}
         return await self.async_step_discovery_confirm()
 
@@ -294,8 +310,6 @@ class NetlinkConfigFlow(
         errors: dict[str, str] = {}
         device_name = self._device_name or self.context.get("device_name", "Netlink")
         host = self._host or self.context.get("host")
-        mac_address = self._mac_address or self.context.get("mac_address")
-
         if not host:
             return self.async_abort(reason="missing_host")
 
@@ -310,10 +324,7 @@ class NetlinkConfigFlow(
                 if not self.unique_id:
                     await self.async_set_unique_id(info["device_id"])
 
-                updates: dict[str, Any] = {CONF_HOST: host}
-                if mac_address:
-                    updates[CONF_MAC_ADDRESS] = mac_address
-                self._abort_if_unique_id_configured(updates=updates)
+                self._abort_if_unique_id_configured(updates={CONF_HOST: host})
 
                 # Create entry
                 data = {
@@ -321,8 +332,6 @@ class NetlinkConfigFlow(
                     CONF_TOKEN: token,
                     CONF_DEVICE_ID: info["device_id"],
                 }
-                if mac_address:
-                    data[CONF_MAC_ADDRESS] = mac_address
 
                 _LOGGER.debug(
                     "Creating config entry for %s at %s after discovery",
@@ -373,7 +382,6 @@ class NetlinkConfigFlow(
             self._netlink_reauth_entry_id = self.context.get("entry_id")
             self._host = entry_data.get(CONF_HOST)
             self._device_id = entry_data.get(CONF_DEVICE_ID)
-            self._mac_address = entry_data.get(CONF_MAC_ADDRESS)
             if self._host:
                 self.context["title_placeholders"] = {"name": self._host}
             _LOGGER.debug("Starting reauthentication for %s", self._host)
@@ -467,20 +475,8 @@ class NetlinkConfigFlow(
 
         implementation_key = self._device_id or self._host
 
-        # Create device-specific LocalOAuth2Implementation
-        implementation = config_entry_oauth2_flow.LocalOAuth2Implementation(
-            self.hass,
-            implementation_key,
-            "home-assistant",
-            "",  # Public client - no secret needed
-            f"http://{self._host}/oauth/authorize",
-            f"http://{self._host}/api/oauth/token",
-        )
-
-        # Register the implementation
-        config_entry_oauth2_flow.async_register_implementation(
-            self.hass, DOMAIN, implementation
-        )
+        # Register device-specific LocalOAuth2Implementation
+        self._register_oauth_implementation(implementation_key)
 
         # Continue with standard OAuth flow
         return await super().async_step_pick_implementation(

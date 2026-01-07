@@ -105,6 +105,10 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             """Handle device info updates."""
             self.device_info = DeviceInfo.from_dict(data)
 
+            # Keep coordinator updated so entities get a refresh signal.
+            if self.data is not None:
+                self.async_set_updated_data(self.data)
+
         @self.client.on(EVENT_DESK_STATE)
         async def on_desk_state(data: dict[str, Any]) -> None:
             """Handle desk state updates."""

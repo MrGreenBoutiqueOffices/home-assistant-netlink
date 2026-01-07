@@ -29,6 +29,7 @@ async def async_get_config_entry_diagnostics(
             "model": coordinator.device_info.model,
             "version": coordinator.device_info.version,
             "api_version": coordinator.device_info.api_version,
+            "mac_address": coordinator.device_info.mac_address,
         }
 
     # Serialize coordinator data

@@ -6,7 +6,6 @@ DOMAIN = "netlink"
 
 # Config entry data keys
 CONF_DEVICE_ID = "device_id"
-CONF_MAC_ADDRESS = "mac_address"
 CONF_AUTH_IMPLEMENTATION = "auth_implementation"
 
 # Platforms
