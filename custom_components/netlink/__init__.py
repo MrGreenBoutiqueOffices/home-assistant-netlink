@@ -18,7 +18,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_DEVICE_ID, CONF_MAC_ADDRESS, DOMAIN, PLATFORMS
+from .const import CONF_DEVICE_ID, DOMAIN, PLATFORMS
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import _get_suggested_area
 
@@ -63,11 +63,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register the main Netlink controller device
     device_registry = dr.async_get(hass)
-    mac_address = entry.data.get(CONF_MAC_ADDRESS)
     device_info = coordinator.device_info
     if device_info is None:
         raise ConfigEntryNotReady("Device info not available after setup")
     device_name = device_info.device_name
+
+    connections = (
+        {(dr.CONNECTION_NETWORK_MAC, device_info.mac_address)}
+        if device_info.mac_address
+        else set()
+    )
 
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
@@ -77,9 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         model=device_info.model,
         sw_version=device_info.version,
         configuration_url=f"http://{entry.data[CONF_HOST]}",
-        connections={(dr.CONNECTION_NETWORK_MAC, mac_address)}
-        if mac_address
-        else set(),
+        connections=connections,
         suggested_area=_get_suggested_area(device_name),
     )
 
