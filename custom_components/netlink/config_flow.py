@@ -382,9 +382,17 @@ class NetlinkConfigFlow(
             self._netlink_reauth_entry_id = self.context.get("entry_id")
             self._host = entry_data.get(CONF_HOST)
             self._device_id = entry_data.get(CONF_DEVICE_ID)
-            if self._host:
-                self.context["title_placeholders"] = {"name": self._host}
-            _LOGGER.debug("Starting reauthentication for %s", self._host)
+
+            # Get the device name from the config entry title
+            entry = self.hass.config_entries.async_get_entry(
+                self._netlink_reauth_entry_id
+            )
+            device_name = entry.title if entry else self._host
+            self._device_name = device_name
+
+            if device_name:
+                self.context["title_placeholders"] = {"name": device_name}
+            _LOGGER.debug("Starting reauthentication for %s", device_name)
 
         # Show menu to choose reauthentication method
         return self.async_show_menu(
