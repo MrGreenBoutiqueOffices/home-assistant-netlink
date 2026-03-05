@@ -13,7 +13,7 @@ You are helping maintain the Home Assistant custom integration in `custom_compon
   - `async_setup()` connects WebSocket and updates via `async_set_updated_data(...)`.
 
 ## Conventions
-- Use base entity classes in `custom_components/netlink/entity.py` for device grouping (`NetlinkMainEntity`, `NetlinkDeskEntity`, `NetlinkDisplayEntity`).
+- Use base entity classes in `custom_components/netlink/entity.py` for device grouping (`NetlinkBrowserEntity`, `NetlinkDeskEntity`, `NetlinkDisplayEntity`).
 - Platforms are split by HA platform file; see `custom_components/netlink/const.py` (`PLATFORMS`).
 
 ## Config flow + translations

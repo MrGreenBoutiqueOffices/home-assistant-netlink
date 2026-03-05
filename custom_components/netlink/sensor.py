@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import NetlinkDataUpdateCoordinator
-from .entity import NetlinkDeskEntity, NetlinkDisplayEntity
+from .entity import NetlinkDeskEntity, NetlinkDisplayEntity, NetlinkBrowserEntity
 
 
 @dataclass(kw_only=True)
@@ -83,6 +83,36 @@ DISPLAY_SENSORS: list[NetlinkSensorEntityDescription] = [
 ]
 
 
+BROWSER_SENSORS: list[NetlinkSensorEntityDescription] = [
+    NetlinkSensorEntityDescription(
+        key="browser_url",
+        translation_key="browser_url",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.url,
+    ),
+]
+
+
+class NetlinkBrowserSensor(NetlinkBrowserEntity, SensorEntity):
+    """Browser controller sensor."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: NetlinkDataUpdateCoordinator,
+        entry: ConfigEntry,
+        description: NetlinkSensorEntityDescription,
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self.entity_description = description
+        self._attr_unique_id = f"{self.device_id}_{description.key}"
+
+    @property
+    def native_value(self) -> str | None:
+        return self.entity_description.value_fn(self.coordinator.data["browser"])
+
+
 class NetlinkDeskSensor(NetlinkDeskEntity, SensorEntity):
     """Desk sensor."""
 
@@ -133,9 +163,13 @@ async def async_setup_entry(
     coordinator: NetlinkDataUpdateCoordinator = entry.runtime_data
 
     entities: list[SensorEntity] = [
+        NetlinkBrowserSensor(coordinator, entry, description)
+        for description in BROWSER_SENSORS
+    ]
+    entities.extend(
         NetlinkDeskSensor(coordinator, entry, description)
         for description in DESK_SENSORS
-    ]
+    )
 
     display_bus_ids = set(coordinator.display_info.keys()) | set(
         coordinator.data["displays"].keys()

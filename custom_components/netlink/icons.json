@@ -1,6 +1,9 @@
 {
   "entity": {
     "sensor": {
+      "browser_url": {
+        "default": "mdi:web"
+      },
       "desk_height": {
         "default": "mdi:arrow-expand-vertical"
       },

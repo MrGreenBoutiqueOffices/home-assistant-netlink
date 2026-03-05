@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import NetlinkDataUpdateCoordinator
-from .entity import NetlinkDeskEntity, NetlinkMainEntity
+from .entity import NetlinkDeskEntity, NetlinkBrowserEntity
 
 
 @dataclass(kw_only=True)
@@ -44,7 +44,7 @@ DESK_BUTTONS: list[NetlinkButtonEntityDescription] = [
 ]
 
 
-MAIN_BUTTONS: list[NetlinkButtonEntityDescription] = [
+BROWSER_BUTTONS: list[NetlinkButtonEntityDescription] = [
     NetlinkButtonEntityDescription(
         key="browser_refresh",
         translation_key="browser_refresh",
@@ -66,8 +66,8 @@ async def async_setup_entry(
         for description in DESK_BUTTONS
     ]
     entities.extend(
-        NetlinkMainButton(coordinator, entry, description)
-        for description in MAIN_BUTTONS
+        NetlinkBrowserButton(coordinator, entry, description)
+        for description in BROWSER_BUTTONS
     )
 
     async_add_entities(entities)
@@ -92,7 +92,7 @@ class NetlinkDeskButton(NetlinkDeskEntity, ButtonEntity):
         await self.entity_description.press_fn(self.coordinator.client)
 
 
-class NetlinkMainButton(NetlinkMainEntity, ButtonEntity):
+class NetlinkBrowserButton(NetlinkBrowserEntity, ButtonEntity):
     """Main controller button entity."""
 
     _attr_has_entity_name = True
