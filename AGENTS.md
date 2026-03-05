@@ -16,7 +16,7 @@ This repo is a Home Assistant custom integration: `custom_components/netlink/` (
 	- desk: `coordinator.data["desk"]`
 	- displays: `coordinator.data["displays"][bus_id]`
 - Device grouping is handled by base classes in `custom_components/netlink/entity.py`:
-	- `NetlinkMainEntity`, `NetlinkDeskEntity`, `NetlinkDisplayEntity`
+	- `NetlinkBrowserEntity`, `NetlinkDeskEntity`, `NetlinkDisplayEntity`
 	- `suggested_area` is derived from the device name.
 
 ## Config flow + translations (common footgun)

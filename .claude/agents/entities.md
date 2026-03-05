@@ -14,5 +14,5 @@ Focus: entity model + platform files for Netlink.
   - displays: `coordinator.data["displays"][bus_id]`
 
 ## Conventions
-- Use `NetlinkMainEntity` / `NetlinkDeskEntity` / `NetlinkDisplayEntity` for correct device registry grouping.
+- Use `NetlinkBrowserEntity` / `NetlinkDeskEntity` / `NetlinkDisplayEntity` for correct device registry grouping.
 - Keep display entities keyed by `bus_id` as a string.

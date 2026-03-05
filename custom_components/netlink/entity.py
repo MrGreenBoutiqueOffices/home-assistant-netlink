@@ -42,7 +42,7 @@ class NetlinkBaseEntity(CoordinatorEntity[NetlinkDataUpdateCoordinator]):
         return self.coordinator.device_info.version
 
 
-class NetlinkMainEntity(NetlinkBaseEntity):
+class NetlinkBrowserEntity(NetlinkBaseEntity):
     """Entity attached to the main Netlink controller device."""
 
     _attr_has_entity_name = True

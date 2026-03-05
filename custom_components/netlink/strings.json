@@ -85,6 +85,9 @@
   },
   "entity": {
     "sensor": {
+      "browser_url": {
+        "name": "Browser URL"
+      },
       "desk_height": {
         "name": "Height"
       },
