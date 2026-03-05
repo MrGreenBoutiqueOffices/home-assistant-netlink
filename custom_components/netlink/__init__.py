@@ -46,6 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass,
         client,
         entry.data[CONF_DEVICE_ID],
+        entry,
     )
 
     try:

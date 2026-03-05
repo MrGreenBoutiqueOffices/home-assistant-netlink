@@ -85,3 +85,15 @@ async def async_setup_entry(
                 )
 
     async_add_entities(entities)
+
+    def _on_new_display(bus_id: str) -> None:
+        state = coordinator.data["displays"].get(bus_id)
+        if state and getattr(state, "supports", {}).get("source"):
+            async_add_entities(
+                [
+                    NetlinkDisplaySelect(coordinator, entry, bus_id, description)
+                    for description in DISPLAY_SELECTS
+                ]
+            )
+
+    coordinator.async_add_new_display_callback(_on_new_display)
