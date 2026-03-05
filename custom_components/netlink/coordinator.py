@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from pynetlink import (
@@ -19,11 +20,15 @@ from pynetlink import (
     EVENT_DISPLAYS_LIST,
 )
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 import logging
+
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,11 +41,13 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         hass: HomeAssistant,
         client: NetlinkClient,
         device_id: str,
+        config_entry: ConfigEntry,
     ) -> None:
         """Initialize coordinator."""
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name=f"Netlink {device_id}",
             update_interval=None,  # WebSocket push only, no polling!
         )
@@ -48,6 +55,8 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device_id = device_id
         self.device_info: DeviceInfo | None = None
         self.display_info: dict[str, DisplaySummary] = {}
+        self._known_bus_ids: set[str] = set()
+        self._new_display_callbacks: list[Callable[[str], None]] = []
         self._initial_refresh_done = False
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -76,6 +85,8 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         "Failed to get display %s status: %s", display.bus, err
                     )
 
+            self._known_bus_ids = set(display_states.keys())
+
             return {
                 "desk": desk_status,
                 "displays": display_states,
@@ -84,6 +95,10 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise ConfigEntryAuthFailed(err) from err
         except (NetlinkError, NetlinkDataError) as err:
             raise UpdateFailed(err) from err
+
+    def async_add_new_display_callback(self, callback: Callable[[str], None]) -> None:
+        """Register a callback to be called when a new display is discovered."""
+        self._new_display_callbacks.append(callback)
 
     async def async_setup(self) -> None:
         """Setup WebSocket listeners and fetch initial data."""
@@ -149,6 +164,11 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 }
             )
 
+            if self._initial_refresh_done and bus_id not in self._known_bus_ids:
+                self._known_bus_ids.add(bus_id)
+                for callback in self._new_display_callbacks:
+                    callback(bus_id)
+
         @self.client.on(EVENT_DISPLAYS_LIST)
         async def on_displays_list(data: list[dict[str, Any]]) -> None:
             """Handle display list updates."""
@@ -161,6 +181,31 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Fetch initial data
         await self.async_config_entry_first_refresh()
         self._initial_refresh_done = True
+
+        # Remove orphaned display devices from previous sessions
+        self._async_cleanup_stale_devices()
+
+    def _async_cleanup_stale_devices(self) -> None:
+        """Remove display devices in the registry that are no longer present."""
+        prefix = f"netlink-{self.device_id}-display-"
+        device_reg = dr.async_get(self.hass)
+        for device in dr.async_entries_for_config_entry(
+            device_reg, self.config_entry.entry_id
+        ):
+            for domain, identifier in device.identifiers:
+                if domain == DOMAIN and identifier.startswith(prefix):
+                    bus_id = identifier[len(prefix) :]
+                    if bus_id not in self._known_bus_ids:
+                        device_reg.async_update_device(
+                            device.id,
+                            remove_config_entry_id=self.config_entry.entry_id,
+                        )
+                        _LOGGER.debug(
+                            "Removed orphaned display device %s (bus %s)",
+                            device.id,
+                            bus_id,
+                        )
+                    break
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator and disconnect WebSocket."""

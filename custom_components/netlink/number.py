@@ -188,3 +188,14 @@ async def async_setup_entry(
             )
 
     async_add_entities(entities)
+
+    def _on_new_display(bus_id: str) -> None:
+        async_add_entities(
+            [
+                NetlinkDisplayNumber(coordinator, entry, bus_id, description)
+                for description in DISPLAY_NUMBERS
+                if _display_supports(coordinator, bus_id, description.key) is not False
+            ]
+        )
+
+    coordinator.async_add_new_display_callback(_on_new_display)

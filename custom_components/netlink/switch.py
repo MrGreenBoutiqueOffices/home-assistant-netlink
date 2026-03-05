@@ -130,3 +130,13 @@ async def async_setup_entry(
             )
 
     async_add_entities(entities)
+
+    def _on_new_display(bus_id: str) -> None:
+        async_add_entities(
+            [
+                NetlinkDisplaySwitch(coordinator, entry, bus_id, description)
+                for description in DISPLAY_SWITCHES
+            ]
+        )
+
+    coordinator.async_add_new_display_callback(_on_new_display)
