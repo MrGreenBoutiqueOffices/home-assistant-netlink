@@ -10,6 +10,7 @@
       "oauth_timeout": "Timeout resolving OAuth token.",
       "oauth_unauthorized": "OAuth authorization error while obtaining access token.",
       "reauth_successful": "Re-authentication successful",
+      "reconfigure_successful": "Re-configuration successful",
       "unknown": "Unknown error",
       "user_rejected_authorize": "Account linking rejected: {error}"
     },
