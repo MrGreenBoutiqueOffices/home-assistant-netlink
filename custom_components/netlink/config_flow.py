@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from aiohttp import ClientSession
@@ -15,7 +16,11 @@ from pynetlink import (
 )
 import voluptuous as vol
 
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlowResult
+from homeassistant.config_entries import (
+    SOURCE_REAUTH,
+    SOURCE_RECONFIGURE,
+    ConfigFlowResult,
+)
 from homeassistant.const import CONF_HOST, CONF_TOKEN
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers import selector
@@ -138,13 +143,20 @@ class NetlinkConfigFlow(
                 # Validate connection (host already set from async_step_user)
                 info = await _validate_connection(self._host, token, session)
 
-                # Check if already configured
                 await self.async_set_unique_id(info["device_id"])
-                self._abort_if_unique_id_configured(
-                    updates={
-                        CONF_HOST: self._host,
-                    }
-                )
+
+                if self.source == SOURCE_RECONFIGURE:
+                    self._abort_if_unique_id_mismatch()
+                    return self.async_update_reload_and_abort(
+                        self._get_reconfigure_entry(),
+                        data_updates={
+                            CONF_HOST: self._host,
+                            CONF_TOKEN: token,
+                            CONF_DEVICE_ID: info["device_id"],
+                        },
+                    )
+
+                self._abort_if_unique_id_configured(updates={CONF_HOST: self._host})
 
                 # Create entry
                 _LOGGER.debug(
@@ -231,6 +243,20 @@ class NetlinkConfigFlow(
                         "OAuth reauthentication successful for %s", self._host
                     )
                     return self.async_abort(reason="reauth_successful")
+
+            if self.source == SOURCE_RECONFIGURE:
+                if not self.unique_id:
+                    await self.async_set_unique_id(device_id)
+                self._abort_if_unique_id_mismatch()
+                return self.async_update_reload_and_abort(
+                    self._get_reconfigure_entry(),
+                    data_updates={
+                        CONF_HOST: self._host,
+                        CONF_TOKEN: token,
+                        CONF_DEVICE_ID: device_id,
+                        CONF_AUTH_IMPLEMENTATION: desired_implementation,
+                    },
+                )
 
             # Normal setup - check if already configured
             if not self.unique_id:
@@ -369,6 +395,12 @@ class NetlinkConfigFlow(
                 "host": host,
             },
         )
+
+    async def async_step_reconfigure(
+        self, user_input: Mapping[str, Any]
+    ) -> ConfigFlowResult:
+        """Handle reconfiguration."""
+        return await self.async_step_user()
 
     async def async_step_reauth(
         self, entry_data: dict[str, Any] | None = None

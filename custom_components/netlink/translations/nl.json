@@ -10,6 +10,7 @@
       "oauth_timeout": "Time-out bij het oplossen van OAuth token.",
       "oauth_unauthorized": "OAuth autorisatiefout bij het verkrijgen van toegangstoken.",
       "reauth_successful": "Herauthenticatie geslaagd",
+      "reconfigure_successful": "Herconfiguratie geslaagd",
       "unknown": "Onbekende fout",
       "user_rejected_authorize": "Accountkoppeling geweigerd: {error}"
     },
