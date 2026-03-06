@@ -209,7 +209,11 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.display_info = {str(display.bus): display for display in displays}
 
         # Connect WebSocket
-        await self.client.connect()
+        try:
+            await self.client.connect()
+        except Exception:
+            await self.client.disconnect()
+            raise
 
         # Fetch initial data
         await self.async_config_entry_first_refresh()
