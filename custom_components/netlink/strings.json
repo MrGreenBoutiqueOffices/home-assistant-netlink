@@ -83,6 +83,17 @@
       }
     }
   },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Authentication with {name} ({host}) failed. Please re-authenticate."
+    },
+    "cannot_connect": {
+      "message": "Could not connect to {name} ({host}). Please check your network connection."
+    },
+    "command_failed": {
+      "message": "The command could not be executed by the Netlink device."
+    }
+  },
   "entity": {
     "sensor": {
       "browser_url": {

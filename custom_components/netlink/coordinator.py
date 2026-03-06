@@ -21,6 +21,7 @@ from pynetlink import (
 )
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
@@ -92,9 +93,23 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "displays": display_states,
             }
         except NetlinkAuthenticationError as err:
-            raise ConfigEntryAuthFailed(err) from err
+            raise ConfigEntryAuthFailed(
+                translation_domain=DOMAIN,
+                translation_key="auth_failed",
+                translation_placeholders={
+                    "name": self.config_entry.title,
+                    "host": self.config_entry.data[CONF_HOST],
+                },
+            ) from err
         except (NetlinkError, NetlinkDataError) as err:
-            raise UpdateFailed(err) from err
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="cannot_connect",
+                translation_placeholders={
+                    "name": self.config_entry.title,
+                    "host": self.config_entry.data[CONF_HOST],
+                },
+            ) from err
 
     def async_add_new_display_callback(self, callback: Callable[[str], None]) -> None:
         """Register a callback to be called when a new display is discovered."""

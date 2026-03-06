@@ -84,6 +84,17 @@
       }
     }
   },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Authenticatie met {name} ({host}) is mislukt. Authenticeer opnieuw."
+    },
+    "cannot_connect": {
+      "message": "Kan geen verbinding maken met {name} ({host}). Controleer je netwerkverbinding."
+    },
+    "command_failed": {
+      "message": "Het commando kon niet worden uitgevoerd door het Netlink apparaat."
+    }
+  },
   "entity": {
     "sensor": {
       "browser_url": {
