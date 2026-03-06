@@ -110,7 +110,8 @@ class NetlinkBrowserSensor(NetlinkBrowserEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        return self.entity_description.value_fn(self.coordinator.data["browser"])
+        data = self.coordinator.data["browser"]
+        return self.entity_description.value_fn(data)
 
 
 class NetlinkDeskSensor(NetlinkDeskEntity, SensorEntity):

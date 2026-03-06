@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import logging
 from typing import Any
 
 from pynetlink import (
+    EVENT_BROWSER_STATE,
+    EVENT_DESK_STATE,
+    EVENT_DEVICE_INFO,
+    EVENT_DISPLAY_STATE,
+    EVENT_DISPLAYS_LIST,
+    BrowserState,
     Desk,
     DeviceInfo,
     Display,
@@ -14,10 +21,6 @@ from pynetlink import (
     NetlinkClient,
     NetlinkDataError,
     NetlinkError,
-    EVENT_DESK_STATE,
-    EVENT_DEVICE_INFO,
-    EVENT_DISPLAY_STATE,
-    EVENT_DISPLAYS_LIST,
 )
 
 from homeassistant.config_entries import ConfigEntry
@@ -26,8 +29,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
-import logging
 
 from .const import DOMAIN
 
@@ -88,10 +89,9 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             self._known_bus_ids = set(display_states.keys())
 
-            return {
-                "desk": desk_status,
-                "displays": display_states,
-            }
+            # Fetch initial browser status
+            browser_state = await self.client.get_browser_status()
+
         except NetlinkAuthenticationError as err:
             raise ConfigEntryAuthFailed(
                 translation_domain=DOMAIN,
@@ -110,6 +110,12 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "host": self.config_entry.data[CONF_HOST],
                 },
             ) from err
+        else:
+            return {
+                "desk": desk_status,
+                "displays": display_states,
+                "browser": browser_state,
+            }
 
     def async_add_new_display_callback(self, callback: Callable[[str], None]) -> None:
         """Register a callback to be called when a new display is discovered."""
@@ -183,6 +189,18 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._known_bus_ids.add(bus_id)
                 for callback in self._new_display_callbacks:
                     callback(bus_id)
+
+        @self.client.on(EVENT_BROWSER_STATE)
+        async def on_browser_state(data: dict[str, Any]) -> None:
+            """Handle browser state updates."""
+            try:
+                browser = BrowserState.from_dict(data)
+            except NetlinkDataError as exc:
+                _LOGGER.warning("Skipping incomplete browser state: %s", exc)
+                return
+
+            current = self.data or {}
+            self.async_set_updated_data({**current, "browser": browser})
 
         @self.client.on(EVENT_DISPLAYS_LIST)
         async def on_displays_list(data: list[dict[str, Any]]) -> None:
