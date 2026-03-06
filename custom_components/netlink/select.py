@@ -5,11 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+from pynetlink import NetlinkCommandError, NetlinkConnectionError
+
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import DOMAIN
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import NetlinkDisplayEntity
 
@@ -58,9 +62,15 @@ class NetlinkDisplaySelect(NetlinkDisplayEntity, SelectEntity):
         return [str(item) for item in source_options]
 
     async def async_select_option(self, option: str) -> None:
-        await self.entity_description.select_fn(
-            self.coordinator.client, self.bus_id, option
-        )
+        try:
+            await self.entity_description.select_fn(
+                self.coordinator.client, self.bus_id, option
+            )
+        except (NetlinkCommandError, NetlinkConnectionError) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+            ) from err
 
 
 async def async_setup_entry(

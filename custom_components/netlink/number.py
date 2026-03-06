@@ -16,7 +16,10 @@ from homeassistant.components.number import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfLength
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import DOMAIN
 
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import NetlinkDeskEntity, NetlinkDisplayEntity
@@ -143,7 +146,10 @@ class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
                         self.bus_id,
                     )
                     return
-                raise
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="command_failed",
+                ) from err
         elif self.entity_description.key == "volume":
             if self._supports("volume") is False:
                 _LOGGER.debug("Display %s does not support volume", self.bus_id)
@@ -158,7 +164,10 @@ class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
                         "Display %s rejected volume change (unsupported)", self.bus_id
                     )
                     return
-                raise
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="command_failed",
+                ) from err
         await self.coordinator.async_request_refresh()
 
 

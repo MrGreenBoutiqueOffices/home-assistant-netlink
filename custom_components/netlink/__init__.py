@@ -53,11 +53,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Setup WebSocket connection and fetch initial data
         await coordinator.async_setup()
     except NetlinkAuthenticationError as err:
-        raise ConfigEntryAuthFailed(err) from err
-    except NetlinkConnectionError as err:
-        raise ConfigEntryNotReady(err) from err
-    except NetlinkError as err:
-        raise ConfigEntryNotReady(err) from err
+        raise ConfigEntryAuthFailed(
+            translation_domain=DOMAIN,
+            translation_key="auth_failed",
+            translation_placeholders={
+                "name": entry.title,
+                "host": entry.data[CONF_HOST],
+            },
+        ) from err
+    except (NetlinkConnectionError, NetlinkError) as err:
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="cannot_connect",
+            translation_placeholders={
+                "name": entry.title,
+                "host": entry.data[CONF_HOST],
+            },
+        ) from err
 
     # Store coordinator in runtime_data
     entry.runtime_data = coordinator
@@ -66,7 +78,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     device_registry = dr.async_get(hass)
     device_info = coordinator.device_info
     if device_info is None:
-        raise ConfigEntryNotReady("Device info not available after setup")
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="cannot_connect",
+            translation_placeholders={
+                "name": entry.title,
+                "host": entry.data[CONF_HOST],
+            },
+        )
     device_name = device_info.device_name
 
     connections = (

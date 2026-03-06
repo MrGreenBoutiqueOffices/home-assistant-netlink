@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from pynetlink import NetlinkCommandError, NetlinkConnectionError
+
 from homeassistant.components.switch import (
     SwitchDeviceClass,
     SwitchEntity,
@@ -13,8 +15,10 @@ from homeassistant.components.switch import (
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import DOMAIN
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import NetlinkDeskEntity, NetlinkDisplayEntity
 
@@ -70,10 +74,22 @@ class NetlinkDeskSwitch(NetlinkDeskEntity, SwitchEntity):
         return bool(value)
 
     async def async_turn_on(self, **_: Any) -> None:
-        await self.coordinator.client.set_desk_beep(state="on")
+        try:
+            await self.coordinator.client.set_desk_beep(state="on")
+        except (NetlinkCommandError, NetlinkConnectionError) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+            ) from err
 
     async def async_turn_off(self, **_: Any) -> None:
-        await self.coordinator.client.set_desk_beep(state="off")
+        try:
+            await self.coordinator.client.set_desk_beep(state="off")
+        except (NetlinkCommandError, NetlinkConnectionError) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+            ) from err
 
 
 class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
@@ -99,11 +115,23 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
         return bool(value)
 
     async def async_turn_on(self, **_: Any) -> None:
-        await self.coordinator.client.set_display_power(self.bus_id, "on")
+        try:
+            await self.coordinator.client.set_display_power(self.bus_id, "on")
+        except (NetlinkCommandError, NetlinkConnectionError) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+            ) from err
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **_: Any) -> None:
-        await self.coordinator.client.set_display_power(self.bus_id, "off")
+        try:
+            await self.coordinator.client.set_display_power(self.bus_id, "off")
+        except (NetlinkCommandError, NetlinkConnectionError) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+            ) from err
         await self.coordinator.async_request_refresh()
 
 
