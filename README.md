@@ -29,7 +29,7 @@ This native Home Assistant integration provides **real-time control** over Netli
 
 ## Requirements
 
-- Home Assistant >= 2025.12.0
+- Home Assistant >= 2026.3.0
 - Netlink device with REST API, WebSocket, and OAuth 2.0 support
 - Authentication via OAuth 2.0 (recommended) or bearer token
 
