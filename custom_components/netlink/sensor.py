@@ -46,7 +46,7 @@ DESK_SENSORS: list[NetlinkSensorEntityDescription] = [
         key="desk_error",
         translation_key="desk_error",
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda data: data.state.error,
+        value_fn=lambda data: data.state.error or None,
     ),
 ]
 
@@ -78,7 +78,7 @@ DISPLAY_SENSORS: list[NetlinkSensorEntityDescription] = [
         key="error",
         translation_key="display_error",
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda data: data.state.error,
+        value_fn=lambda data: data.state.error or None,
     ),
 ]
 

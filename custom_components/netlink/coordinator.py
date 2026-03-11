@@ -140,6 +140,15 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         async def on_device_info(data: dict[str, Any]) -> None:
             """Handle device info updates."""
             self.device_info = DeviceInfo.from_dict(data)
+            device_reg = dr.async_get(self.hass)
+            for device in dr.async_entries_for_config_entry(
+                device_reg, self.config_entry.entry_id
+            ):
+                device_reg.async_update_device(
+                    device.id,
+                    sw_version=self.device_info.version,
+                    model=self.device_info.model,
+                )
 
             # Keep coordinator updated so entities get a refresh signal.
             if self.data is not None:
