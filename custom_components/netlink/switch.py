@@ -108,7 +108,9 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool | None:
-        data = self.coordinator.data["displays"][self.bus_id]
+        data = self.coordinator.data.get("displays", {}).get(self.bus_id)
+        if data is None:
+            return None
         value = self.entity_description.value_fn(data)
         if isinstance(value, str):
             return value == "on"

@@ -151,7 +151,9 @@ class NetlinkDisplaySensor(NetlinkDisplayEntity, SensorEntity):
 
     @property
     def native_value(self) -> int | float | str | bool | None:
-        data = self.coordinator.data["displays"][self.bus_id]
+        data = self.coordinator.data.get("displays", {}).get(self.bus_id)
+        if data is None:
+            return None
         return self.entity_description.value_fn(data)
 
 

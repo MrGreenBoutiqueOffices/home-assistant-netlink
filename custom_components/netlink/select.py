@@ -9,7 +9,7 @@ from pynetlink import NetlinkCommandError, NetlinkConnectionError
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -49,17 +49,27 @@ class NetlinkDisplaySelect(NetlinkDisplayEntity, SelectEntity):
         super().__init__(coordinator, entry, bus_id)
         self.entity_description = description
         self._attr_unique_id = f"{self.device_id}_display_{bus_id}_{description.key}"
+        # Seed options from initial coordinator data so they remain available
+        # even when the display temporarily disappears (e.g. after power-off).
+        initial = coordinator.data.get("displays", {}).get(bus_id)
+        self._attr_options = (
+            [str(item) for item in initial.source_options] if initial else []
+        )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update options when coordinator data arrives, preserve last known on absence."""
+        data = self.coordinator.data.get("displays", {}).get(self.bus_id)
+        if data is not None:
+            self._attr_options = [str(item) for item in data.source_options]
+        self.async_write_ha_state()
 
     @property
     def current_option(self) -> str | None:
-        data = self.coordinator.data["displays"][self.bus_id]
+        data = self.coordinator.data.get("displays", {}).get(self.bus_id)
+        if data is None:
+            return None
         return data.state.source
-
-    @property
-    def options(self) -> list[str]:
-        data = self.coordinator.data["displays"][self.bus_id]
-        source_options = data.source_options
-        return [str(item) for item in source_options]
 
     async def async_select_option(self, option: str) -> None:
         try:
