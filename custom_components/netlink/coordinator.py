@@ -86,6 +86,9 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     _LOGGER.warning(
                         "Failed to get display %s status: %s", display.bus, err
                     )
+                    bus_key = str(display.bus)
+                    if self.data and bus_key in self.data.get("displays", {}):
+                        display_states[bus_key] = self.data["displays"][bus_key]
 
             self._known_bus_ids = set(display_states.keys())
 
