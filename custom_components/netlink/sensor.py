@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import NetlinkDataUpdateCoordinator
-from .entity import NetlinkDeskEntity, NetlinkDisplayEntity, NetlinkBrowserEntity
+from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
 
 
 @dataclass(kw_only=True)
@@ -93,7 +93,7 @@ BROWSER_SENSORS: list[NetlinkSensorEntityDescription] = [
 ]
 
 
-class NetlinkBrowserSensor(NetlinkBrowserEntity, SensorEntity):
+class NetlinkBrowserSensor(NetlinkControllerEntity, SensorEntity):
     """Browser controller sensor."""
 
     _attr_has_entity_name = True
@@ -114,7 +114,7 @@ class NetlinkBrowserSensor(NetlinkBrowserEntity, SensorEntity):
         return self.entity_description.value_fn(data)
 
 
-class NetlinkDeskSensor(NetlinkDeskEntity, SensorEntity):
+class NetlinkDeskSensor(NetlinkControllerEntity, SensorEntity):
     """Desk sensor."""
 
     _attr_has_entity_name = True

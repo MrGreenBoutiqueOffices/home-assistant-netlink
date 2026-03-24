@@ -20,7 +20,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .coordinator import NetlinkDataUpdateCoordinator
-from .entity import NetlinkDeskEntity, NetlinkDisplayEntity
+from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
 
 
 @dataclass(kw_only=True)
@@ -50,7 +50,7 @@ DISPLAY_SWITCHES: list[NetlinkSwitchEntityDescription] = [
 ]
 
 
-class NetlinkDeskSwitch(NetlinkDeskEntity, SwitchEntity):
+class NetlinkDeskSwitch(NetlinkControllerEntity, SwitchEntity):
     """Desk switch."""
 
     _attr_has_entity_name = True

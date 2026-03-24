@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .coordinator import NetlinkDataUpdateCoordinator
-from .entity import NetlinkDeskEntity, NetlinkBrowserEntity
+from .entity import NetlinkControllerEntity
 
 
 @dataclass(kw_only=True)
@@ -77,7 +77,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class NetlinkDeskButton(NetlinkDeskEntity, ButtonEntity):
+class NetlinkDeskButton(NetlinkControllerEntity, ButtonEntity):
     """Desk button entity."""
 
     _attr_has_entity_name = True
@@ -102,7 +102,7 @@ class NetlinkDeskButton(NetlinkDeskEntity, ButtonEntity):
             ) from err
 
 
-class NetlinkBrowserButton(NetlinkBrowserEntity, ButtonEntity):
+class NetlinkBrowserButton(NetlinkControllerEntity, ButtonEntity):
     """Main controller button entity."""
 
     _attr_has_entity_name = True

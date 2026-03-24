@@ -20,4 +20,7 @@ You are working on a Home Assistant custom integration under `custom_components/
 - `uv run ruff check .`
 - `uv run ruff format --check .`
 
-See `.github/copilot-instructions.md` and `AGENTS.md` for deeper repo context.
+For deeper context see (in order of detail):
+- `.claude/agents/` — per-topic agent instructions (entities, coordinator, translations, …)
+- `AGENTS.md` — full architecture + dev workflow reference
+- `.github/copilot-instructions.md` — concise overview for Copilot / other AI tools

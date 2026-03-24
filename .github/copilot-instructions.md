@@ -13,7 +13,9 @@
 
 ## Entity conventions
 - Base classes live in `custom_components/netlink/entity.py`:
-  - `NetlinkBrowserEntity`, `NetlinkDeskEntity`, `NetlinkDisplayEntity` define device registry grouping + `suggested_area`.
+  - `NetlinkControllerEntity`: all desk and browser entities (main controller device)
+  - `NetlinkDisplayEntity`: one device per physical display, linked via `via_device`
+  - Both define device registry grouping + `suggested_area`.
 - Platforms are split by HA platform file: `sensor.py`, `binary_sensor.py`, `number.py`, `switch.py`, `select.py`, `button.py` (see `PLATFORMS` in `const.py`).
 
 ## Config flow + discovery

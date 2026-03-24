@@ -42,7 +42,7 @@ class NetlinkBaseEntity(CoordinatorEntity[NetlinkDataUpdateCoordinator]):
         return self.coordinator.device_info.version
 
 
-class NetlinkBrowserEntity(NetlinkBaseEntity):
+class NetlinkControllerEntity(NetlinkBaseEntity):
     """Entity attached to the main Netlink controller device."""
 
     _attr_has_entity_name = True
@@ -57,26 +57,6 @@ class NetlinkBrowserEntity(NetlinkBaseEntity):
             model=self.coordinator.device_info.model,
             sw_version=self._device_sw_version(),
             suggested_area=self.suggested_area,
-            configuration_url=f"http://{self.entry.data[CONF_HOST]}",
-        )
-
-
-class NetlinkDeskEntity(NetlinkBaseEntity):
-    """Entity attached to the desk device."""
-
-    _attr_has_entity_name = True
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device registry info for the desk."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, f"{self.device_identifier}-desk")},
-            name=f"{self.device_name} (Desk)",
-            manufacturer="NetOS",
-            model="Desk Controller",
-            sw_version=self._device_sw_version(),
-            suggested_area=self.suggested_area,
-            via_device=(DOMAIN, self.device_identifier),
             configuration_url=f"http://{self.entry.data[CONF_HOST]}",
         )
 
