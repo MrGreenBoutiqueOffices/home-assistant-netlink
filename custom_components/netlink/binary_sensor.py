@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import NetlinkDataUpdateCoordinator
-from .entity import NetlinkDeskEntity
+from .entity import NetlinkControllerEntity
 
 
 @dataclass(kw_only=True)
@@ -35,7 +35,7 @@ DESK_BINARY_SENSORS: list[NetlinkBinarySensorEntityDescription] = [
 ]
 
 
-class NetlinkDeskBinarySensor(NetlinkDeskEntity, BinarySensorEntity):
+class NetlinkDeskBinarySensor(NetlinkControllerEntity, BinarySensorEntity):
     """Desk binary sensor."""
 
     _attr_has_entity_name = True

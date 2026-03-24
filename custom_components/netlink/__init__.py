@@ -30,6 +30,32 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate old config entry to current version."""
+    _LOGGER.debug(
+        "Migrating Netlink config entry from version %s.%s",
+        entry.version,
+        entry.minor_version,
+    )
+
+    if entry.version == 1 and entry.minor_version < 2:
+        # Remove the orphaned desk sub-device created by older versions.
+        # Desk entities now live on the main controller device instead of a
+        # separate sub-device, so the old device entry is no longer needed.
+        device_registry = dr.async_get(hass)
+        desk_identifier = f"netlink-{entry.data[CONF_DEVICE_ID]}-desk"
+        device = device_registry.async_get_device(
+            identifiers={(DOMAIN, desk_identifier)}
+        )
+        if device is not None:
+            device_registry.async_remove_device(device.id)
+            _LOGGER.debug("Removed orphaned desk sub-device %s", desk_identifier)
+
+        hass.config_entries.async_update_entry(entry, minor_version=2)
+
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Netlink from a config entry."""
     session = async_get_clientsession(hass)

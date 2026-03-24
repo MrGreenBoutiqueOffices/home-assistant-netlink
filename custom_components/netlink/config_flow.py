@@ -58,6 +58,7 @@ class NetlinkConfigFlow(
     """Handle a config flow for Netlink with OAuth2 support."""
 
     VERSION = 1
+    MINOR_VERSION = 2
     DOMAIN = DOMAIN
 
     def __init__(self) -> None:

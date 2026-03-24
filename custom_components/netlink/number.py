@@ -22,7 +22,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 
 from .coordinator import NetlinkDataUpdateCoordinator
-from .entity import NetlinkDeskEntity, NetlinkDisplayEntity
+from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ DISPLAY_NUMBERS: list[NetlinkNumberEntityDescription] = [
 ]
 
 
-class NetlinkDeskNumber(NetlinkDeskEntity, NumberEntity):
+class NetlinkDeskNumber(NetlinkControllerEntity, NumberEntity):
     """Desk number entity."""
 
     _attr_has_entity_name = True
