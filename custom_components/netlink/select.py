@@ -66,10 +66,7 @@ class NetlinkDisplaySelect(NetlinkDisplayEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        data = self.coordinator.data.get("displays", {}).get(self.bus_id)
-        if data is None:
-            return None
-        return data.state.source
+        return self.coordinator.data["displays"][self.bus_id].state.source
 
     async def async_select_option(self, option: str) -> None:
         try:

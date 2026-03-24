@@ -46,7 +46,7 @@ DESK_SENSORS: list[NetlinkSensorEntityDescription] = [
         key="desk_error",
         translation_key="desk_error",
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda data: data.state.error,
+        value_fn=lambda data: (data.state.error or "")[:255] or None,
     ),
 ]
 
@@ -78,7 +78,7 @@ DISPLAY_SENSORS: list[NetlinkSensorEntityDescription] = [
         key="error",
         translation_key="display_error",
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda data: data.state.error,
+        value_fn=lambda data: (data.state.error or "")[:255] or None,
     ),
 ]
 
@@ -151,9 +151,7 @@ class NetlinkDisplaySensor(NetlinkDisplayEntity, SensorEntity):
 
     @property
     def native_value(self) -> int | float | str | bool | None:
-        data = self.coordinator.data.get("displays", {}).get(self.bus_id)
-        if data is None:
-            return None
+        data = self.coordinator.data["displays"][self.bus_id]
         return self.entity_description.value_fn(data)
 
 

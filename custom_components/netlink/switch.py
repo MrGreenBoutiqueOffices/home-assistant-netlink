@@ -108,9 +108,7 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool | None:
-        data = self.coordinator.data.get("displays", {}).get(self.bus_id)
-        if data is None:
-            return None
+        data = self.coordinator.data["displays"][self.bus_id]
         value = self.entity_description.value_fn(data)
         if isinstance(value, str):
             return value == "on"
@@ -124,7 +122,6 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
             ) from err
-        await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **_: Any) -> None:
         try:
@@ -134,7 +131,6 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
             ) from err
-        await self.coordinator.async_request_refresh()
 
 
 async def async_setup_entry(

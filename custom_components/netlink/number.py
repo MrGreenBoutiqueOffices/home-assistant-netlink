@@ -124,9 +124,7 @@ class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
 
     @property
     def native_value(self) -> int | float | None:
-        data = self.coordinator.data.get("displays", {}).get(self.bus_id)
-        if data is None:
-            return None
+        data = self.coordinator.data["displays"][self.bus_id]
         return self.entity_description.value_fn(data)
 
     def _supports(self, capability: str) -> bool | None:
@@ -170,7 +168,6 @@ class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
                     translation_domain=DOMAIN,
                     translation_key="command_failed",
                 ) from err
-        await self.coordinator.async_request_refresh()
 
 
 async def async_setup_entry(
