@@ -33,7 +33,7 @@ dependencies = [
 dev = [
     "pre-commit-hooks==6.0.0",
     "prek==0.3.8",
-    "ruff==0.15.7",
+    "ruff==0.15.8",
 ]
 
 [tool.hatch.metadata]
