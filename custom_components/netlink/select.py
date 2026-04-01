@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from pynetlink import NetlinkCommandError, NetlinkConnectionError
+from pynetlink import NetlinkCommandError, NetlinkConnectionError, NetlinkTimeoutError
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.config_entries import ConfigEntry
@@ -73,7 +73,11 @@ class NetlinkDisplaySelect(NetlinkDisplayEntity, SelectEntity):
             await self.entity_description.select_fn(
                 self.coordinator.client, self.bus_id, option
             )
-        except (NetlinkCommandError, NetlinkConnectionError) as err:
+        except (
+            NetlinkCommandError,
+            NetlinkConnectionError,
+            NetlinkTimeoutError,
+        ) as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
