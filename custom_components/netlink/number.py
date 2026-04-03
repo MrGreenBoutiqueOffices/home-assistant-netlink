@@ -7,7 +7,11 @@ from typing import Callable
 
 import logging
 
-from pynetlink.exceptions import NetlinkCommandError
+from pynetlink.exceptions import (
+    NetlinkCommandError,
+    NetlinkConnectionError,
+    NetlinkTimeoutError,
+)
 
 from homeassistant.components.number import (
     NumberEntity,
@@ -47,6 +51,7 @@ class NetlinkNumberEntityDescription(NumberEntityDescription):
     """Number entity description with value resolver."""
 
     value_fn: Callable[[object], int | float]
+    set_fn: Callable | None = None
 
 
 DESK_NUMBERS: list[NetlinkNumberEntityDescription] = [
@@ -71,6 +76,9 @@ DISPLAY_NUMBERS: list[NetlinkNumberEntityDescription] = [
         native_step=1,
         native_unit_of_measurement=PERCENTAGE,
         value_fn=lambda data: data.state.brightness,
+        set_fn=lambda client, bus_id, value: client.set_display_brightness(
+            bus_id, value
+        ),
     ),
     NetlinkNumberEntityDescription(
         key="volume",
@@ -80,6 +88,7 @@ DISPLAY_NUMBERS: list[NetlinkNumberEntityDescription] = [
         native_step=1,
         native_unit_of_measurement=PERCENTAGE,
         value_fn=lambda data: data.state.volume,
+        set_fn=lambda client, bus_id, value: client.set_display_volume(bus_id, value),
     ),
 ]
 
@@ -105,7 +114,20 @@ class NetlinkDeskNumber(NetlinkControllerEntity, NumberEntity):
         return self.entity_description.value_fn(data)
 
     async def async_set_native_value(self, value: float) -> None:
-        await self.coordinator.client.set_desk_height(value)
+        try:
+            await self.coordinator.client.set_desk_height(value)
+        except NetlinkCommandError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
+            ) from err
+        except (NetlinkConnectionError, NetlinkTimeoutError) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_unavailable",
+                translation_placeholders={"name": self.device_name},
+            ) from err
 
 
 class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
@@ -131,43 +153,31 @@ class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
         return _display_supports(self.coordinator, self.bus_id, capability)
 
     async def async_set_native_value(self, value: float) -> None:
-        if self.entity_description.key == "brightness":
-            if self._supports("brightness") is False:
-                _LOGGER.debug("Display %s does not support brightness", self.bus_id)
-                return
-            try:
-                await self.coordinator.client.set_display_brightness(
-                    self.bus_id, int(value)
+        key = self.entity_description.key
+        if self._supports(key) is False:
+            _LOGGER.debug("Display %s does not support %s", self.bus_id, key)
+            return
+        try:
+            await self.entity_description.set_fn(
+                self.coordinator.client, self.bus_id, int(value)
+            )
+        except NetlinkCommandError as err:
+            if str(err) == "unsupported_command":
+                _LOGGER.warning(
+                    "Display %s rejected %s change (unsupported)", self.bus_id, key
                 )
-            except NetlinkCommandError as err:
-                if str(err) == "unsupported_command":
-                    _LOGGER.warning(
-                        "Display %s rejected brightness change (unsupported)",
-                        self.bus_id,
-                    )
-                    return
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="command_failed",
-                ) from err
-        elif self.entity_description.key == "volume":
-            if self._supports("volume") is False:
-                _LOGGER.debug("Display %s does not support volume", self.bus_id)
                 return
-            try:
-                await self.coordinator.client.set_display_volume(
-                    self.bus_id, int(value)
-                )
-            except NetlinkCommandError as err:
-                if str(err) == "unsupported_command":
-                    _LOGGER.warning(
-                        "Display %s rejected volume change (unsupported)", self.bus_id
-                    )
-                    return
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="command_failed",
-                ) from err
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
+            ) from err
+        except (NetlinkConnectionError, NetlinkTimeoutError) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_unavailable",
+                translation_placeholders={"name": self.device_name},
+            ) from err
 
 
 async def async_setup_entry(
