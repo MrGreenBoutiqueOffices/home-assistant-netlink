@@ -92,7 +92,10 @@
       "message": "Kan geen verbinding maken met {name} ({host}). Controleer je netwerkverbinding."
     },
     "command_failed": {
-      "message": "Het commando kon niet worden uitgevoerd door het Netlink apparaat."
+      "message": "Het commando kon niet worden uitgevoerd door {name}."
+    },
+    "command_unavailable": {
+      "message": "Het commando kon niet worden verstuurd naar {name}. Het apparaat is mogelijk offline of onbereikbaar."
     }
   },
   "entity": {

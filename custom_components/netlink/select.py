@@ -73,14 +73,17 @@ class NetlinkDisplaySelect(NetlinkDisplayEntity, SelectEntity):
             await self.entity_description.select_fn(
                 self.coordinator.client, self.bus_id, option
             )
-        except (
-            NetlinkCommandError,
-            NetlinkConnectionError,
-            NetlinkTimeoutError,
-        ) as err:
+        except NetlinkCommandError as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
+            ) from err
+        except (NetlinkConnectionError, NetlinkTimeoutError) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_unavailable",
+                translation_placeholders={"name": self.device_name},
             ) from err
 
 
