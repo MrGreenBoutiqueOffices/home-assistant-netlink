@@ -126,6 +126,18 @@
       },
       "display_error": {
         "name": "Fout"
+      },
+      "web_login_access_code": {
+        "name": "Web login toegangscode"
+      },
+      "web_login_access_code_valid_until": {
+        "name": "Web login toegangscode geldig tot"
+      },
+      "signing_maintenance_access_code": {
+        "name": "Signing maintenance toegangscode"
+      },
+      "signing_maintenance_access_code_valid_until": {
+        "name": "Signing maintenance toegangscode geldig tot"
       }
     },
     "number": {

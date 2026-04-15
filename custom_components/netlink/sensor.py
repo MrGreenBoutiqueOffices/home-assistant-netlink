@@ -16,7 +16,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfLength
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
+from .const import COORDINATOR_KEY_ACCESS_CODES
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
 
@@ -25,7 +27,7 @@ from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
 class NetlinkSensorEntityDescription(SensorEntityDescription):
     """Sensor entity description with value resolver."""
 
-    value_fn: Callable[[object], int | float | str | bool]
+    value_fn: Callable[[object], int | float | str | bool | None]
 
 
 DESK_SENSORS: list[NetlinkSensorEntityDescription] = [
@@ -93,6 +95,42 @@ BROWSER_SENSORS: list[NetlinkSensorEntityDescription] = [
 ]
 
 
+ACCESS_CODE_SENSORS: list[NetlinkSensorEntityDescription] = [
+    NetlinkSensorEntityDescription(
+        key="web_login_access_code",
+        translation_key="web_login_access_code",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda data: data.web_login.code,
+    ),
+    NetlinkSensorEntityDescription(
+        key="web_login_access_code_valid_until",
+        translation_key="web_login_access_code_valid_until",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda data: dt_util.parse_datetime(data.web_login.valid_until),
+    ),
+    NetlinkSensorEntityDescription(
+        key="signing_maintenance_access_code",
+        translation_key="signing_maintenance_access_code",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda data: data.signing_maintenance.code,
+    ),
+    NetlinkSensorEntityDescription(
+        key="signing_maintenance_access_code_valid_until",
+        translation_key="signing_maintenance_access_code_valid_until",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda data: dt_util.parse_datetime(
+            data.signing_maintenance.valid_until
+        ),
+    ),
+]
+
+
 class NetlinkBrowserSensor(NetlinkControllerEntity, SensorEntity):
     """Browser controller sensor."""
 
@@ -155,6 +193,27 @@ class NetlinkDisplaySensor(NetlinkDisplayEntity, SensorEntity):
         return self.entity_description.value_fn(data)
 
 
+class NetlinkAccessCodeSensor(NetlinkControllerEntity, SensorEntity):
+    """Access code diagnostic sensor."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: NetlinkDataUpdateCoordinator,
+        entry: ConfigEntry,
+        description: NetlinkSensorEntityDescription,
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self.entity_description = description
+        self._attr_unique_id = f"{self.device_id}_{description.key}"
+
+    @property
+    def native_value(self) -> int | float | str | bool | None:
+        data = self.coordinator.data[COORDINATOR_KEY_ACCESS_CODES]
+        return self.entity_description.value_fn(data)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -170,6 +229,10 @@ async def async_setup_entry(
     entities.extend(
         NetlinkDeskSensor(coordinator, entry, description)
         for description in DESK_SENSORS
+    )
+    entities.extend(
+        NetlinkAccessCodeSensor(coordinator, entry, description)
+        for description in ACCESS_CODE_SENSORS
     )
 
     display_bus_ids = set(coordinator.display_info.keys()) | set(
