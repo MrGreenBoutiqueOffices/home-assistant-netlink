@@ -1,17 +1,17 @@
-# Netlink Home Assistant Integration
+# NetLink Home Assistant Integration
 
 [![hacs_badge][hacs-badge]][hacs]
 [![GitHub Release][release-shield]][releases]
 [![Project Maintenance][maintenance-shield]][maintenance]
 [![License][license-shield]][license]
 
-Native Home Assistant integration for Netlink smart desk and monitor control systems.
+Native Home Assistant integration for NetLink smart desk and monitor control systems.
 
 ## About
 
-Netlink is the operating software for smart standing desks, developed by [NetOS](https://net-os.com/). The system powers smart desks in commercial office environments, most notably at [Mr.Green Offices](https://mrgreenoffices.nl/) locations throughout the Netherlands.
+NetLink is the operating software for smart standing desks, developed by [NetOS](https://net-os.com/). The system powers smart desks in commercial office environments, most notably at [Mr.Green Offices](https://mrgreenoffices.nl/) locations throughout the Netherlands.
 
-This native Home Assistant integration provides **real-time control** over Netlink-powered desks. Unlike traditional polling-based integrations, it uses WebSocket push updates for instant state synchronization, making it ideal for responsive automations and dashboards.
+This native Home Assistant integration provides **real-time control** over NetLink-powered desks. Unlike traditional polling-based integrations, it uses WebSocket push updates for instant state synchronization, making it ideal for responsive automations and dashboards.
 
 ## Features
 
@@ -30,7 +30,7 @@ This native Home Assistant integration provides **real-time control** over Netli
 ## Requirements
 
 - Home Assistant >= 2026.3.0
-- Netlink device with REST API, WebSocket, and OAuth 2.0 support
+- NetLink device with REST API, WebSocket, and OAuth 2.0 support
 - Authentication via OAuth 2.0 (recommended) or bearer token
 
 ## Installation
@@ -47,7 +47,7 @@ The recommended way to install this integration is via **HACS**. If you prefer, 
   - Open the menu (⋮) → **Custom repositories**
   - Repository: `https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink`
   - Category: **Integration**
-4. Search for **Netlink** and install it
+4. Search for **NetLink** and install it
 5. Restart Home Assistant
 
 ### Option 2 — Manual
@@ -66,10 +66,10 @@ The integration supports both **automatic discovery** (mDNS/Zeroconf) and **manu
 
 ### Automatic Discovery (Recommended)
 
-If your Netlink device is discovered via mDNS/Zeroconf, it will appear automatically:
+If your NetLink device is discovered via mDNS/Zeroconf, it will appear automatically:
 
 1. Go to **Settings** → **Devices & Services**
-2. Find the discovered Netlink device in the list
+2. Find the discovered NetLink device in the list
 3. Click **"Configure"**
 4. Choose authentication method:
    - **OAuth 2.0** (Recommended): Click **"OAuth 2.0"** and follow the browser redirect to authorize
@@ -84,7 +84,7 @@ If automatic discovery doesn't work:
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **"+ Add Integration"**
-3. Search for **"Netlink"**
+3. Search for **"NetLink"**
 4. Enter the **host** (IP address or hostname)
 5. Choose authentication method:
    - **OAuth 2.0** (Recommended): Click **"OAuth 2.0"** and follow the browser redirect to authorize
@@ -102,7 +102,7 @@ The device will be added immediately.
 
 ### Devices Created
 
-Each Netlink device creates multiple HA devices:
+Each NetLink device creates multiple HA devices:
 
 - **Main device**: `{device_name}` (Browser entities)
 - **Desk device**: `{device_name} (Desk)` (Desk entities)
@@ -172,7 +172,7 @@ This integration is fully compatible with the MQTT-based setup:
 
 1. Install the native integration (keep MQTT running)
 2. Verify all entities work correctly
-3. Disable MQTT discovery for Netlink (optional)
+3. Disable MQTT discovery for NetLink (optional)
 4. Update automations to use native entities
 5. Remove MQTT configuration when ready
 

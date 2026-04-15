@@ -1,6 +1,6 @@
 {
   "domain": "netlink",
-  "name": "Netlink",
+  "name": "NetLink",
   "codeowners": ["@klaasnicolaas"],
   "config_flow": true,
   "documentation": "https://github.com/MrGreenBoutiqueOffices/home-assistant-netlink",
