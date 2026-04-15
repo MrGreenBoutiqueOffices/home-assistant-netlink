@@ -229,10 +229,11 @@ async def async_setup_entry(
         NetlinkDeskSensor(coordinator, entry, description)
         for description in DESK_SENSORS
     )
-    entities.extend(
-        NetlinkAccessCodeSensor(coordinator, entry, description)
-        for description in ACCESS_CODE_SENSORS
-    )
+    if "access_codes" in coordinator.data:
+        entities.extend(
+            NetlinkAccessCodeSensor(coordinator, entry, description)
+            for description in ACCESS_CODE_SENSORS
+        )
 
     display_bus_ids = set(coordinator.display_info.keys()) | set(
         coordinator.data["displays"].keys()
@@ -254,3 +255,19 @@ async def async_setup_entry(
         )
 
     coordinator.async_add_new_display_callback(_on_new_display)
+
+    access_code_entities_added = "access_codes" in coordinator.data
+
+    def _on_access_codes_available() -> None:
+        nonlocal access_code_entities_added
+        if access_code_entities_added:
+            return
+        access_code_entities_added = True
+        async_add_entities(
+            [
+                NetlinkAccessCodeSensor(coordinator, entry, description)
+                for description in ACCESS_CODE_SENSORS
+            ]
+        )
+
+    coordinator.async_add_access_codes_available_callback(_on_access_codes_available)
