@@ -126,6 +126,18 @@
       },
       "display_error": {
         "name": "Error"
+      },
+      "web_login_access_code": {
+        "name": "Web login access code"
+      },
+      "web_login_access_code_valid_until": {
+        "name": "Web login access code valid until"
+      },
+      "signing_maintenance_access_code": {
+        "name": "Signing maintenance access code"
+      },
+      "signing_maintenance_access_code_valid_until": {
+        "name": "Signing maintenance access code valid until"
       }
     },
     "number": {

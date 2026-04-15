@@ -144,6 +144,17 @@ Each Netlink device creates multiple HA devices:
 |------------|--------|-------------|
 | **Button** | `button.browser_refresh` | Refresh browser |
 
+### 🔐 Diagnostic Access Code Entities
+
+| Entity Type | Entity | Description |
+|------------|--------|-------------|
+| **Sensor** | `sensor.web_login_access_code` | Current access code for web login |
+| **Sensor** | `sensor.web_login_access_code_valid_until` | Time when the current web login code expires |
+| **Sensor** | `sensor.signing_maintenance_access_code` | Current access code for signing maintenance |
+| **Sensor** | `sensor.signing_maintenance_access_code_valid_until` | Time when the current signing maintenance code expires |
+
+> **Note**: These entities are diagnostic and disabled by default because they expose sensitive local access information.
+
 </details>
 
 ## Migration from MQTT

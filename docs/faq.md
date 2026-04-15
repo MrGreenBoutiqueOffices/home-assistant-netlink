@@ -89,3 +89,4 @@ Diagnostics are the fastest way to troubleshoot.
 
 **Privacy**
 - Sensitive data (tokens) is automatically redacted
+- Daily access code values are explicitly redacted from diagnostics exports

@@ -70,6 +70,13 @@ async def async_get_config_entry_diagnostics(
                 }
             coordinator_data_dict["displays"] = displays_dict
 
+        if "access_codes" in coordinator.data:
+            access_codes = coordinator.data["access_codes"]
+            coordinator_data_dict["access_codes"] = async_redact_data(
+                access_codes.to_dict(),
+                {"code"},
+            )
+
     # WebSocket connection state
     client_state = {
         "connected": coordinator.client.connected

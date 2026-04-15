@@ -7,6 +7,7 @@ import logging
 from typing import Any
 
 from pynetlink import (
+    EVENT_ACCESS_CODES_STATE,
     EVENT_BROWSER_STATE,
     EVENT_DESK_STATE,
     EVENT_DEVICE_INFO,
@@ -17,6 +18,7 @@ from pynetlink import (
     DeviceInfo,
     Display,
     DisplaySummary,
+    AccessCodes,
     NetlinkAuthenticationError,
     NetlinkClient,
     NetlinkDataError,
@@ -94,6 +96,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Fetch initial browser status
             browser_state = await self.client.get_browser_status()
+            access_codes = await self.client.get_access_codes()
 
         except NetlinkAuthenticationError as err:
             raise ConfigEntryAuthFailed(
@@ -118,6 +121,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "desk": desk_status,
                 "displays": display_states,
                 "browser": browser_state,
+                "access_codes": access_codes,
             }
 
     def async_add_new_display_callback(self, callback: Callable[[str], None]) -> None:
@@ -213,6 +217,23 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             current = self.data or {}
             self.async_set_updated_data({**current, "browser": browser})
+
+        @self.client.on(EVENT_ACCESS_CODES_STATE)
+        async def on_access_codes_state(data: dict[str, Any]) -> None:
+            """Handle push updates for access codes."""
+            try:
+                access_codes = AccessCodes.from_dict(data)
+            except NetlinkDataError as exc:
+                _LOGGER.warning("Skipping incomplete access code state: %s", exc)
+                return
+
+            current = self.data or {}
+            self.async_set_updated_data(
+                {
+                    **current,
+                    "access_codes": access_codes,
+                }
+            )
 
         @self.client.on(EVENT_DISPLAYS_LIST)
         async def on_displays_list(data: list[dict[str, Any]]) -> None:
