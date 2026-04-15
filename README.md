@@ -153,7 +153,8 @@ Each NetLink device creates multiple HA devices:
 | **Sensor** | `sensor.signing_maintenance_access_code` | Current access code for signing maintenance |
 | **Sensor** | `sensor.signing_maintenance_access_code_valid_until` | Time when the current signing maintenance code expires |
 
-> **Note**: These entities are diagnostic and disabled by default because they expose sensitive local access information.
+> [!NOTE]
+> These entities are disabled by default and only appear when the NetLink webserver exposes daily access codes.
 
 </details>
 

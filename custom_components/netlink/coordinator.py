@@ -61,6 +61,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.display_info: dict[str, DisplaySummary] = {}
         self._known_bus_ids: set[str] = set()
         self._new_display_callbacks: list[Callable[[str], None]] = []
+        self._access_codes_available_callbacks: list[Callable[[], None]] = []
         self._initial_refresh_done = False
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -96,7 +97,14 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Fetch initial browser status
             browser_state = await self.client.get_browser_status()
-            access_codes = await self.client.get_access_codes()
+
+            coordinator_data: dict[str, Any] = {
+                "desk": desk_status,
+                "displays": display_states,
+                "browser": browser_state,
+            }
+            if self.data and "access_codes" in self.data:
+                coordinator_data["access_codes"] = self.data["access_codes"]
 
         except NetlinkAuthenticationError as err:
             raise ConfigEntryAuthFailed(
@@ -117,16 +125,17 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 },
             ) from err
         else:
-            return {
-                "desk": desk_status,
-                "displays": display_states,
-                "browser": browser_state,
-                "access_codes": access_codes,
-            }
+            return coordinator_data
 
     def async_add_new_display_callback(self, callback: Callable[[str], None]) -> None:
         """Register a callback to be called when a new display is discovered."""
         self._new_display_callbacks.append(callback)
+
+    def async_add_access_codes_available_callback(
+        self, callback: Callable[[], None]
+    ) -> None:
+        """Register a callback for when access codes become available."""
+        self._access_codes_available_callbacks.append(callback)
 
     async def async_setup(self) -> None:
         """Setup WebSocket listeners and fetch initial data."""
@@ -228,12 +237,16 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 return
 
             current = self.data or {}
+            had_access_codes = "access_codes" in current
             self.async_set_updated_data(
                 {
                     **current,
                     "access_codes": access_codes,
                 }
             )
+            if self._initial_refresh_done and not had_access_codes:
+                for callback in self._access_codes_available_callbacks:
+                    callback()
 
         @self.client.on(EVENT_DISPLAYS_LIST)
         async def on_displays_list(data: list[dict[str, Any]]) -> None:
