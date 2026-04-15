@@ -18,7 +18,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import COORDINATOR_KEY_ACCESS_CODES
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
 
@@ -210,7 +209,7 @@ class NetlinkAccessCodeSensor(NetlinkControllerEntity, SensorEntity):
 
     @property
     def native_value(self) -> int | float | str | bool | None:
-        data = self.coordinator.data[COORDINATOR_KEY_ACCESS_CODES]
+        data = self.coordinator.data["access_codes"]
         return self.entity_description.value_fn(data)
 
 
