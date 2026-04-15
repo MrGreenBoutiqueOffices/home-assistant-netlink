@@ -30,6 +30,18 @@
       },
       "display_error": {
         "default": "mdi:alert-circle-outline"
+      },
+      "web_login_access_code": {
+        "default": "mdi:key-outline"
+      },
+      "web_login_access_code_valid_until": {
+        "default": "mdi:clock-outline"
+      },
+      "signing_maintenance_access_code": {
+        "default": "mdi:key-outline"
+      },
+      "signing_maintenance_access_code_valid_until": {
+        "default": "mdi:clock-outline"
       }
     },
     "number": {
