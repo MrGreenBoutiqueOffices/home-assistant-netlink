@@ -30,13 +30,13 @@
         }
       },
       "user": {
-        "title": "Setup Netlink",
-        "description": "Enter the IP address of your Netlink device.",
+        "title": "Setup NetLink",
+        "description": "Enter the IP address of your NetLink device.",
         "data": {
           "host": "Host"
         },
         "data_description": {
-          "host": "The IP address or hostname of your Netlink device."
+          "host": "The IP address or hostname of your NetLink device."
         }
       },
       "manual": {
@@ -46,7 +46,7 @@
           "token": "Token"
         },
         "data_description": {
-          "token": "Find this token in the Netlink web interface settings."
+          "token": "Find this token in the NetLink web interface settings."
         }
       },
       "discovery_confirm": {
@@ -64,7 +64,7 @@
           "token": "Token"
         },
         "data_description": {
-          "token": "Find this token in the Netlink web interface settings."
+          "token": "Find this token in the NetLink web interface settings."
         }
       },
       "reauth": {

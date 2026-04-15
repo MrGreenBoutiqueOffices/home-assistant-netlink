@@ -30,13 +30,13 @@
         }
       },
       "user": {
-        "title": "Netlink instellen",
-        "description": "Voer het IP-adres van je Netlink apparaat in.",
+        "title": "NetLink instellen",
+        "description": "Voer het IP-adres van je NetLink apparaat in.",
         "data": {
           "host": "Host"
         },
         "data_description": {
-          "host": "Het IP-adres of hostname van je Netlink apparaat."
+          "host": "Het IP-adres of hostname van je NetLink apparaat."
         }
       },
       "manual": {
@@ -46,7 +46,7 @@
           "token": "Token"
         },
         "data_description": {
-          "token": "Je vindt dit token in de Netlink webinterface instellingen."
+          "token": "Je vindt dit token in de NetLink webinterface instellingen."
         }
       },
       "discovery_confirm": {
@@ -64,7 +64,7 @@
           "token": "Token"
         },
         "data_description": {
-          "token": "Je vindt dit token in de Netlink webinterface instellingen."
+          "token": "Je vindt dit token in de NetLink webinterface instellingen."
         }
       },
       "reauth": {
