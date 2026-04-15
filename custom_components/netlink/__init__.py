@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 
+import voluptuous as vol
+
 from pynetlink import (
     NetlinkAuthenticationError,
     NetlinkClient,
@@ -13,10 +15,11 @@ from pynetlink import (
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_TOKEN
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.service import async_extract_config_entry_ids
 
 from .const import CONF_DEVICE_ID, DOMAIN, PLATFORMS
 from .coordinator import NetlinkDataUpdateCoordinator
@@ -131,6 +134,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         connections=connections,
         suggested_area=_get_suggested_area(device_name),
     )
+
+    # Register integration-level services once
+    if not hass.services.has_service(DOMAIN, "set_browser_url"):
+
+        async def handle_set_browser_url(call: ServiceCall) -> None:
+            url = call.data["url"]
+            entry_ids = await async_extract_config_entry_ids(call)
+            for entry_id in entry_ids:
+                cfg_entry = hass.config_entries.async_get_entry(entry_id)
+                if cfg_entry and cfg_entry.domain == DOMAIN:
+                    coord: NetlinkDataUpdateCoordinator = cfg_entry.runtime_data
+                    await coord.client.set_browser_url(url)
+
+        hass.services.async_register(
+            DOMAIN,
+            "set_browser_url",
+            handle_set_browser_url,
+            schema=vol.Schema({vol.Required("url"): cv.string}),
+        )
 
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
