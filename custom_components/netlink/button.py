@@ -1,4 +1,4 @@
-"""Button platform for Netlink."""
+"""Button platform for NetLink."""
 
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Netlink button entities."""
+    """Set up NetLink button entities."""
     coordinator: NetlinkDataUpdateCoordinator = entry.runtime_data
 
     entities: list[ButtonEntity] = [

@@ -1,4 +1,4 @@
-"""Sensor platform for Netlink."""
+"""Sensor platform for NetLink."""
 
 from __future__ import annotations
 
@@ -218,7 +218,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Netlink sensor entities."""
+    """Set up NetLink sensor entities."""
     coordinator: NetlinkDataUpdateCoordinator = entry.runtime_data
 
     entities: list[SensorEntity] = [

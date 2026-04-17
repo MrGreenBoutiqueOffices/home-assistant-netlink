@@ -1,4 +1,4 @@
-"""The Netlink integration."""
+"""The NetLink integration."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate old config entry to current version."""
     _LOGGER.debug(
-        "Migrating Netlink config entry from version %s.%s",
+        "Migrating NetLink config entry from version %s.%s",
         entry.version,
         entry.minor_version,
     )
@@ -57,7 +57,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Netlink from a config entry."""
+    """Set up NetLink from a config entry."""
     session = async_get_clientsession(hass)
 
     # Create client
@@ -100,7 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Store coordinator in runtime_data
     entry.runtime_data = coordinator
 
-    # Register the main Netlink controller device
+    # Register the main NetLink controller device
     device_registry = dr.async_get(hass)
     device_info = coordinator.device_info
     if device_info is None:

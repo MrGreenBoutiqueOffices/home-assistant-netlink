@@ -1,4 +1,4 @@
-"""Binary sensor platform for Netlink."""
+"""Binary sensor platform for NetLink."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Netlink binary sensor entities."""
+    """Set up NetLink binary sensor entities."""
     coordinator: NetlinkDataUpdateCoordinator = entry.runtime_data
 
     entities: list[BinarySensorEntity] = [
