@@ -7,9 +7,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  DEFAULT_PYTHON: "3.13"
-
 permissions:
   contents: read
 
@@ -23,7 +20,6 @@ jobs:
       - name: 🏗 Set up UV
         uses: astral-sh/setup-uv@v8.1.0
         with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
           enable-cache: true
       - name: 🏗 Install project dependencies
         run: uv sync --frozen --dev

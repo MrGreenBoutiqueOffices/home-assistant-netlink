@@ -1,10 +1,10 @@
 [project]
 name = "netlink"
 version = "0.0.0"
-description = "Netlink integration for Home Assistant"
-authors = [{ name = "Klaas Schoute", email = "k.schoute@net-os.com"}]
-maintainers = [{name = "Klaas Schoute", email = "k.schoute@net-os.com"}]
-license = "LGPL-3.0-or-later"
+description = "NetLink integration for Home Assistant"
+authors = [{ name = "Klaas Schoute", email = "k.schoute@mrgreenoffices.nl"}]
+maintainers = [{name = "Klaas Schoute", email = "k.schoute@mrgreenoffices.nl"}]
+license = "LGPL-3.0-only"
 readme = "README.md"
 keywords = [
   "custom integration",
@@ -15,18 +15,16 @@ keywords = [
   "netlink",
 ]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 5 - Production/Stable",
   "Framework :: AsyncIO",
   "Intended Audience :: Developers",
   "Natural Language :: English",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: 3",
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.14.2"
 dependencies = [
-    "homeassistant>=2025.2.0",
+    "homeassistant>=2026.3.0",
 ]
 
 [dependency-groups]

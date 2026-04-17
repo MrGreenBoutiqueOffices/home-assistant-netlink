@@ -218,7 +218,7 @@ For a full list of all authors and contributors, check [the contributor's page][
 
 ## License
 
-This project is licensed under the LGPL-3.0-or-later License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the LGPL-3.0-only License - see the [LICENSE](LICENSE) file for details.
 
 ## Credits
 
