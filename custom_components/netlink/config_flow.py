@@ -176,7 +176,7 @@ class NetlinkConfigFlow(
             except NetlinkAuthenticationError:
                 _LOGGER.debug("Authentication failed for %s", self._host)
                 errors["base"] = "invalid_auth"
-            except (NetlinkConnectionError, NetlinkTimeoutError):
+            except NetlinkConnectionError, NetlinkTimeoutError:
                 _LOGGER.debug("Cannot connect to Netlink device at %s", self._host)
                 errors["base"] = "cannot_connect"
             except NetlinkError:
@@ -284,7 +284,7 @@ class NetlinkConfigFlow(
         except NetlinkAuthenticationError:
             _LOGGER.debug("OAuth authentication failed for %s", self._host)
             return self.async_abort(reason="invalid_auth")
-        except (NetlinkConnectionError, NetlinkTimeoutError):
+        except NetlinkConnectionError, NetlinkTimeoutError:
             _LOGGER.debug("Cannot connect to Netlink device at %s", self._host)
             return self.async_abort(reason="cannot_connect")
         except NetlinkError:
@@ -372,7 +372,7 @@ class NetlinkConfigFlow(
             except NetlinkAuthenticationError:
                 _LOGGER.debug("Authentication failed for %s", host)
                 errors["base"] = "invalid_auth"
-            except (NetlinkConnectionError, NetlinkTimeoutError):
+            except NetlinkConnectionError, NetlinkTimeoutError:
                 _LOGGER.debug("Cannot connect to Netlink device at %s", host)
                 errors["base"] = "cannot_connect"
             except NetlinkError:
@@ -478,7 +478,7 @@ class NetlinkConfigFlow(
             except NetlinkAuthenticationError:
                 _LOGGER.debug("Reauthentication failed for %s: invalid auth", host)
                 errors["base"] = "invalid_auth"
-            except (NetlinkConnectionError, NetlinkTimeoutError):
+            except NetlinkConnectionError, NetlinkTimeoutError:
                 _LOGGER.debug(
                     "Cannot connect to Netlink device at %s during reauth", host
                 )
