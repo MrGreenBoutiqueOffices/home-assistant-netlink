@@ -1,4 +1,4 @@
-"""Config flow for Netlink integration."""
+"""Config flow for NetLink integration."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ _LOGGER = logging.getLogger(__name__)
 async def _validate_connection(
     host: str, token: str, session: ClientSession
 ) -> dict[str, str]:
-    """Validate the connection to a Netlink device.
+    """Validate the connection to a NetLink device.
 
     Returns a dict with device info on success.
     Raises NetlinkAuthenticationError, NetlinkConnectionError, or NetlinkError on failure.
@@ -55,7 +55,7 @@ async def _validate_connection(
 class NetlinkConfigFlow(
     config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOMAIN
 ):
-    """Handle a config flow for Netlink with OAuth2 support."""
+    """Handle a config flow for NetLink with OAuth2 support."""
 
     VERSION = 1
     MINOR_VERSION = 2
@@ -177,7 +177,7 @@ class NetlinkConfigFlow(
                 _LOGGER.debug("Authentication failed for %s", self._host)
                 errors["base"] = "invalid_auth"
             except NetlinkConnectionError, NetlinkTimeoutError:
-                _LOGGER.debug("Cannot connect to Netlink device at %s", self._host)
+                _LOGGER.debug("Cannot connect to NetLink device at %s", self._host)
                 errors["base"] = "cannot_connect"
             except NetlinkError:
                 _LOGGER.exception("Unknown error connecting to %s", self._host)
@@ -285,7 +285,7 @@ class NetlinkConfigFlow(
             _LOGGER.debug("OAuth authentication failed for %s", self._host)
             return self.async_abort(reason="invalid_auth")
         except NetlinkConnectionError, NetlinkTimeoutError:
-            _LOGGER.debug("Cannot connect to Netlink device at %s", self._host)
+            _LOGGER.debug("Cannot connect to NetLink device at %s", self._host)
             return self.async_abort(reason="cannot_connect")
         except NetlinkError:
             _LOGGER.exception("Unknown error during OAuth flow for %s", self._host)
@@ -300,7 +300,7 @@ class NetlinkConfigFlow(
         properties = discovery_info.properties or {}
         device_id = properties.get("device_id")
         device_name = properties.get("device_name")
-        _LOGGER.debug("Discovered Netlink device %s at %s", device_name, host)
+        _LOGGER.debug("Discovered NetLink device %s at %s", device_name, host)
 
         if not device_id or not device_name:
             return self.async_abort(reason="unknown")
@@ -320,7 +320,7 @@ class NetlinkConfigFlow(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Confirm discovery and choose authentication method."""
-        device_name = self._device_name or "Netlink"
+        device_name = self._device_name or "NetLink"
         return self.async_show_menu(
             step_id="discovery_confirm",
             menu_options=["oauth", "discovery_manual"],
@@ -335,7 +335,7 @@ class NetlinkConfigFlow(
     ) -> ConfigFlowResult:
         """Handle manual token entry after discovery."""
         errors: dict[str, str] = {}
-        device_name = self._device_name or self.context.get("device_name", "Netlink")
+        device_name = self._device_name or self.context.get("device_name", "NetLink")
         host = self._host or self.context.get("host")
         if not host:
             return self.async_abort(reason="missing_host")
@@ -373,7 +373,7 @@ class NetlinkConfigFlow(
                 _LOGGER.debug("Authentication failed for %s", host)
                 errors["base"] = "invalid_auth"
             except NetlinkConnectionError, NetlinkTimeoutError:
-                _LOGGER.debug("Cannot connect to Netlink device at %s", host)
+                _LOGGER.debug("Cannot connect to NetLink device at %s", host)
                 errors["base"] = "cannot_connect"
             except NetlinkError:
                 _LOGGER.exception("Unknown error connecting to %s", host)
@@ -480,7 +480,7 @@ class NetlinkConfigFlow(
                 errors["base"] = "invalid_auth"
             except NetlinkConnectionError, NetlinkTimeoutError:
                 _LOGGER.debug(
-                    "Cannot connect to Netlink device at %s during reauth", host
+                    "Cannot connect to NetLink device at %s during reauth", host
                 )
                 errors["base"] = "cannot_connect"
             except NetlinkError:

@@ -1,4 +1,4 @@
-"""Diagnostics support for Netlink."""
+"""Diagnostics support for NetLink."""
 
 from __future__ import annotations
 

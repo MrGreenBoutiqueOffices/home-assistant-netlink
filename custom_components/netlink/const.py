@@ -1,4 +1,4 @@
-"""Constants for the Netlink integration."""
+"""Constants for the NetLink integration."""
 
 from homeassistant.const import Platform
 

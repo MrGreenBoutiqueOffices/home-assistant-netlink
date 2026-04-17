@@ -1,4 +1,4 @@
-"""Switch platform for Netlink."""
+"""Switch platform for NetLink."""
 
 from __future__ import annotations
 
@@ -138,7 +138,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Netlink switch entities."""
+    """Set up NetLink switch entities."""
     coordinator: NetlinkDataUpdateCoordinator = entry.runtime_data
 
     entities: list[SwitchEntity] = [

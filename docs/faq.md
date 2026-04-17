@@ -1,6 +1,6 @@
 # FAQ / Troubleshooting
 
-This page collects the most common issues when installing and using the Netlink Home Assistant integration.
+This page collects the most common issues when installing and using the NetLink Home Assistant integration.
 
 ## Contents
 
@@ -42,11 +42,11 @@ This page collects the most common issues when installing and using the Netlink 
 
 **What to check**
 - Verify the bearer token matches the device configuration
-- Check the `REST_BEARER_TOKEN` environment variable on the Netlink device
+- Check the `REST_BEARER_TOKEN` environment variable on the NetLink device
 
 **Notes**
 - Tokens do not expire (static configuration)
-- To update the token in Home Assistant: **Settings** → **Devices & Services** → **Netlink** → **Configure**
+- To update the token in Home Assistant: **Settings** → **Devices & Services** → **NetLink** → **Configure**
 
 ## Connection errors
 
@@ -77,8 +77,8 @@ This page collects the most common issues when installing and using the Netlink 
 
 Diagnostics are the fastest way to troubleshoot.
 
-1. Go to **Settings** → **Devices & Services** → **Netlink**
-2. Click your Netlink device
+1. Go to **Settings** → **Devices & Services** → **NetLink**
+2. Click your NetLink device
 3. Open the menu (⋮) and choose **Download diagnostics**
 
 **What diagnostics include**

@@ -1,4 +1,4 @@
-"""DataUpdateCoordinator for Netlink."""
+"""DataUpdateCoordinator for NetLink."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Class to manage fetching Netlink data via WebSocket."""
+    """Class to manage fetching NetLink data via WebSocket."""
 
     def __init__(
         self,
@@ -52,7 +52,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             hass,
             _LOGGER,
             config_entry=config_entry,
-            name=f"Netlink {device_id}",
+            name=f"NetLink {device_id}",
             update_interval=None,  # WebSocket push only, no polling!
         )
         self.client = client

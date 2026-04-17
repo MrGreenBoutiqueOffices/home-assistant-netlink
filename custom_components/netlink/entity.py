@@ -1,4 +1,4 @@
-"""Entity helpers for the Netlink integration."""
+"""Entity helpers for the NetLink integration."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ def _get_suggested_area(device_name: str | None) -> str | None:
 
 
 class NetlinkBaseEntity(CoordinatorEntity[NetlinkDataUpdateCoordinator]):
-    """Base entity for Netlink platforms."""
+    """Base entity for NetLink platforms."""
 
     def __init__(
         self,
@@ -43,7 +43,7 @@ class NetlinkBaseEntity(CoordinatorEntity[NetlinkDataUpdateCoordinator]):
 
 
 class NetlinkControllerEntity(NetlinkBaseEntity):
-    """Entity attached to the main Netlink controller device."""
+    """Entity attached to the main NetLink controller device."""
 
     _attr_has_entity_name = True
 
