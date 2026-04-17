@@ -1,0 +1,9 @@
+set_browser_url:
+  target:
+    device:
+      integration: netlink
+  fields:
+    url:
+      required: true
+      selector:
+        text:
