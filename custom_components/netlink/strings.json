@@ -103,13 +103,13 @@
         "name": "Browser URL"
       },
       "desk_height": {
-        "name": "Height"
+        "name": "Desk Height"
       },
       "desk_mode": {
-        "name": "Mode"
+        "name": "Desk Mode"
       },
       "desk_error": {
-        "name": "Error"
+        "name": "Desk Error"
       },
       "display_brightness": {
         "name": "Brightness"
@@ -141,7 +141,7 @@
     },
     "number": {
       "desk_target_height": {
-        "name": "Target height"
+        "name": "Desk Target height"
       },
       "display_brightness": {
         "name": "Brightness"
@@ -152,7 +152,7 @@
     },
     "switch": {
       "desk_beep": {
-        "name": "Beep"
+        "name": "Desk Beep"
       },
       "display_power": {
         "name": "Power"
@@ -165,13 +165,13 @@
     },
     "button": {
       "desk_stop": {
-        "name": "Stop"
+        "name": "Desk Stop"
       },
       "desk_reset": {
-        "name": "Reset"
+        "name": "Desk Reset"
       },
       "desk_calibrate": {
-        "name": "Calibrate"
+        "name": "Desk Calibrate"
       },
       "browser_refresh": {
         "name": "Refresh"
@@ -179,7 +179,7 @@
     },
     "binary_sensor": {
       "desk_moving": {
-        "name": "Moving"
+        "name": "Desk Moving"
       }
     }
   }
