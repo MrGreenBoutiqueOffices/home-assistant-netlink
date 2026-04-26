@@ -94,13 +94,27 @@ BROWSER_SENSORS: list[NetlinkSensorEntityDescription] = [
 ]
 
 
+def _access_code_value(data: object, login_key: str) -> str | None:
+    """Return the current access code for a login key."""
+    access_code = getattr(data, login_key, None)
+    return access_code.code if access_code else None
+
+
+def _access_code_valid_until(data: object, login_key: str):
+    """Return the access-code expiration timestamp for a login key."""
+    access_code = getattr(data, login_key, None)
+    if access_code is None or not access_code.valid_until:
+        return None
+    return dt_util.parse_datetime(access_code.valid_until)
+
+
 ACCESS_CODE_SENSORS: list[NetlinkSensorEntityDescription] = [
     NetlinkSensorEntityDescription(
         key="web_login_access_code",
         translation_key="web_login_access_code",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-        value_fn=lambda data: data.web_login.code,
+        value_fn=lambda data: _access_code_value(data, "web_login"),
     ),
     NetlinkSensorEntityDescription(
         key="web_login_access_code_valid_until",
@@ -108,14 +122,14 @@ ACCESS_CODE_SENSORS: list[NetlinkSensorEntityDescription] = [
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-        value_fn=lambda data: dt_util.parse_datetime(data.web_login.valid_until),
+        value_fn=lambda data: _access_code_valid_until(data, "web_login"),
     ),
     NetlinkSensorEntityDescription(
         key="signing_maintenance_access_code",
         translation_key="signing_maintenance_access_code",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-        value_fn=lambda data: data.signing_maintenance.code,
+        value_fn=lambda data: _access_code_value(data, "signing_maintenance"),
     ),
     NetlinkSensorEntityDescription(
         key="signing_maintenance_access_code_valid_until",
@@ -123,9 +137,7 @@ ACCESS_CODE_SENSORS: list[NetlinkSensorEntityDescription] = [
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-        value_fn=lambda data: dt_util.parse_datetime(
-            data.signing_maintenance.valid_until
-        ),
+        value_fn=lambda data: _access_code_valid_until(data, "signing_maintenance"),
     ),
 ]
 
@@ -209,7 +221,9 @@ class NetlinkAccessCodeSensor(NetlinkControllerEntity, SensorEntity):
 
     @property
     def native_value(self) -> int | float | str | bool | None:
-        data = self.coordinator.data["access_codes"]
+        data = self.coordinator.data.get("access_codes")
+        if data is None:
+            return None
         return self.entity_description.value_fn(data)
 
 

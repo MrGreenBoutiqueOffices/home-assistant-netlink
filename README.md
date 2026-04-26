@@ -155,6 +155,7 @@ Each NetLink device creates multiple HA devices:
 
 > [!NOTE]
 > These entities are disabled by default and only appear when the NetLink webserver exposes daily access codes.
+> Individual access code sensors can be unknown when that login uses a static PIN or is not configured.
 
 </details>
 

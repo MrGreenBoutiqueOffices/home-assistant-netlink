@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextlib import suppress
 import logging
 from typing import Any
 
@@ -23,6 +24,7 @@ from pynetlink import (
     NetlinkClient,
     NetlinkDataError,
     NetlinkError,
+    NetlinkNotFoundError,
 )
 
 from homeassistant.config_entries import ConfigEntry
@@ -103,8 +105,9 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "displays": display_states,
                 "browser": browser_state,
             }
-            if self.data and "access_codes" in self.data:
-                coordinator_data["access_codes"] = self.data["access_codes"]
+            with suppress(NetlinkNotFoundError):
+                access_codes = await self.client.get_access_codes()
+                coordinator_data["access_codes"] = access_codes
 
         except NetlinkAuthenticationError as err:
             raise ConfigEntryAuthFailed(
