@@ -181,6 +181,9 @@
     "binary_sensor": {
       "desk_moving": {
         "name": "Desk Moving"
+      },
+      "display_connected": {
+        "name": "Connected"
       }
     }
   }
