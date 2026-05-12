@@ -11,9 +11,8 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfLength
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfLength
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
@@ -200,7 +199,9 @@ class NetlinkDisplaySensor(NetlinkDisplayEntity, SensorEntity):
 
     @property
     def native_value(self) -> int | float | str | bool | None:
-        data = self.coordinator.data["displays"][self.bus_id]
+        data = self.coordinator.data["displays"].get(self.bus_id)
+        if data is None:
+            return None
         return self.entity_description.value_fn(data)
 
 
@@ -249,10 +250,7 @@ async def async_setup_entry(
             for description in ACCESS_CODE_SENSORS
         )
 
-    display_bus_ids = set(coordinator.display_info.keys()) | set(
-        coordinator.data["displays"].keys()
-    )
-    for bus_id in sorted(display_bus_ids):
+    for bus_id in sorted(coordinator.known_bus_ids):
         for description in DISPLAY_SENSORS:
             entities.append(
                 NetlinkDisplaySensor(coordinator, entry, bus_id, description)

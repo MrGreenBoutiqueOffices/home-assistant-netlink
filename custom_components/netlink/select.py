@@ -53,7 +53,7 @@ class NetlinkDisplaySelect(NetlinkDisplayEntity, SelectEntity):
         # even when the display temporarily disappears (e.g. after power-off).
         initial = coordinator.data.get("displays", {}).get(bus_id)
         self._attr_options = (
-            [str(item) for item in initial.source_options] if initial else []
+            [str(item) for item in initial.source_options or []] if initial else []
         )
 
     @callback
@@ -61,12 +61,15 @@ class NetlinkDisplaySelect(NetlinkDisplayEntity, SelectEntity):
         """Update options when coordinator data arrives, preserve last known on absence."""
         data = self.coordinator.data.get("displays", {}).get(self.bus_id)
         if data is not None:
-            self._attr_options = [str(item) for item in data.source_options]
+            self._attr_options = [str(item) for item in data.source_options or []]
         self.async_write_ha_state()
 
     @property
     def current_option(self) -> str | None:
-        return self.coordinator.data["displays"][self.bus_id].state.source
+        data = self.coordinator.data["displays"].get(self.bus_id)
+        if data is None:
+            return None
+        return data.state.source
 
     async def async_select_option(self, option: str) -> None:
         try:
@@ -96,13 +99,8 @@ async def async_setup_entry(
     coordinator: NetlinkDataUpdateCoordinator = entry.runtime_data
 
     entities: list[SelectEntity] = []
-    display_bus_ids = set(coordinator.display_info.keys()) | set(
-        coordinator.data["displays"].keys()
-    )
-    for bus_id in sorted(display_bus_ids):
-        # Only create source select for displays with source support
-        state = coordinator.data["displays"].get(bus_id)
-        if state and getattr(state, "supports", {}).get("source"):
+    for bus_id in sorted(coordinator.known_bus_ids):
+        if coordinator.display_supports(bus_id, "source") is not False:
             for description in DISPLAY_SELECTS:
                 entities.append(
                     NetlinkDisplaySelect(coordinator, entry, bus_id, description)
@@ -111,8 +109,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
     def _on_new_display(bus_id: str) -> None:
-        state = coordinator.data["displays"].get(bus_id)
-        if state and getattr(state, "supports", {}).get("source"):
+        if coordinator.display_supports(bus_id, "source") is not False:
             async_add_entities(
                 [
                     NetlinkDisplaySelect(coordinator, entry, bus_id, description)

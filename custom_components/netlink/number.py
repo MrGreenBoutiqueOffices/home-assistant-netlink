@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
-
 import logging
+from typing import Callable
 
 from pynetlink.exceptions import (
     NetlinkCommandError,
@@ -29,21 +28,6 @@ from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _display_supports(
-    coordinator: NetlinkDataUpdateCoordinator, bus_id: str, capability: str
-) -> bool | None:
-    """Check if display supports a capability."""
-    for source in (
-        coordinator.data["displays"].get(bus_id),
-        coordinator.display_info.get(bus_id),
-    ):
-        if source is not None:
-            supports = getattr(source, "supports", None)
-            if isinstance(supports, dict) and capability in supports:
-                return bool(supports[capability])
-    return None
 
 
 @dataclass(kw_only=True)
@@ -146,11 +130,13 @@ class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
 
     @property
     def native_value(self) -> int | float | None:
-        data = self.coordinator.data["displays"][self.bus_id]
+        data = self.coordinator.data["displays"].get(self.bus_id)
+        if data is None:
+            return None
         return self.entity_description.value_fn(data)
 
     def _supports(self, capability: str) -> bool | None:
-        return _display_supports(self.coordinator, self.bus_id, capability)
+        return self.coordinator.display_supports(self.bus_id, capability)
 
     async def async_set_native_value(self, value: float) -> None:
         key = self.entity_description.key
@@ -193,13 +179,9 @@ async def async_setup_entry(
         for description in DESK_NUMBERS
     ]
 
-    display_bus_ids = set(coordinator.display_info.keys()) | set(
-        coordinator.data["displays"].keys()
-    )
-    for bus_id in sorted(display_bus_ids):
+    for bus_id in sorted(coordinator.known_bus_ids):
         for description in DISPLAY_NUMBERS:
-            supported = _display_supports(coordinator, bus_id, description.key)
-            if supported is False:
+            if coordinator.display_supports(bus_id, description.key) is False:
                 continue
             entities.append(
                 NetlinkDisplayNumber(coordinator, entry, bus_id, description)
@@ -212,7 +194,7 @@ async def async_setup_entry(
             [
                 NetlinkDisplayNumber(coordinator, entry, bus_id, description)
                 for description in DISPLAY_NUMBERS
-                if _display_supports(coordinator, bus_id, description.key) is not False
+                if coordinator.display_supports(bus_id, description.key) is not False
             ]
         )
 

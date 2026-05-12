@@ -12,8 +12,8 @@ from homeassistant.components.switch import (
     SwitchEntity,
     SwitchEntityDescription,
 )
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -108,7 +108,9 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool | None:
-        data = self.coordinator.data["displays"][self.bus_id]
+        data = self.coordinator.data["displays"].get(self.bus_id)
+        if data is None:
+            return None
         value = self.entity_description.value_fn(data)
         if isinstance(value, str):
             return value == "on"
@@ -146,10 +148,7 @@ async def async_setup_entry(
         for description in DESK_SWITCHES
     ]
 
-    display_bus_ids = set(coordinator.display_info.keys()) | set(
-        coordinator.data["displays"].keys()
-    )
-    for bus_id in sorted(display_bus_ids):
+    for bus_id in sorted(coordinator.known_bus_ids):
         for description in DISPLAY_SWITCHES:
             entities.append(
                 NetlinkDisplaySwitch(coordinator, entry, bus_id, description)

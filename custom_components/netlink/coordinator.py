@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import asyncio
+from collections.abc import Callable, Iterator
 from contextlib import suppress
 import logging
 from typing import Any
@@ -61,10 +62,52 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device_id = device_id
         self.device_info: DeviceInfo | None = None
         self.display_info: dict[str, DisplaySummary] = {}
-        self._known_bus_ids: set[str] = set()
+        self.known_bus_ids: set[str] = set()
         self._new_display_callbacks: list[Callable[[str], None]] = []
         self._access_codes_available_callbacks: list[Callable[[], None]] = []
         self._initial_refresh_done = False
+
+    def _iter_registry_display_buses(self) -> Iterator[tuple[str, dr.DeviceEntry]]:
+        """Yield (bus_id, device) for all display devices in the HA device registry."""
+        prefix = f"netlink-{self.device_id}-display-"
+        device_reg = dr.async_get(self.hass)
+        for device in dr.async_entries_for_config_entry(
+            device_reg, self.config_entry.entry_id
+        ):
+            for domain, identifier in device.identifiers:
+                if domain == DOMAIN and identifier.startswith(prefix):
+                    yield identifier[len(prefix) :], device
+                    break
+
+    def _track_bus_id(self, bus_id: str) -> None:
+        """Remember a bus as part of the controllable display inventory."""
+        if bus_id in self.known_bus_ids:
+            return
+        self.known_bus_ids.add(bus_id)
+        if self._initial_refresh_done:
+            for callback in self._new_display_callbacks:
+                callback(bus_id)
+
+    def _track_bus_ids(self, displays: list[DisplaySummary]) -> None:
+        """Remember all buses returned by the stable display inventory."""
+        for display in displays:
+            self._track_bus_id(str(display.bus))
+
+    def _patch_data(self, key: str, value: Any) -> None:
+        """Update a single key in coordinator data and notify listeners."""
+        self.async_set_updated_data({**(self.data or {}), key: value})
+
+    async def _fetch_display_status(
+        self, display: DisplaySummary
+    ) -> tuple[str, Display | None]:
+        """Fetch status for a single display, returning (bus_key, state_or_None)."""
+        bus_key = str(display.bus)
+        try:
+            return bus_key, await self.client.get_display_status(display.bus)
+        except NetlinkError as err:
+            _LOGGER.warning("Failed to get display %s status: %s", display.bus, err)
+            fallback = (self.data or {}).get("displays", {}).get(bus_key)
+            return bus_key, fallback
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch initial data via REST API.
@@ -73,32 +116,24 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         After that, WebSocket events keep state updated.
         """
         try:
-            device_info = await self.client.get_device_info()
+            device_info, desk_status, displays, browser_state = await asyncio.gather(
+                self.client.get_device_info(),
+                self.client.get_desk_status(),
+                self.client.get_displays(),
+                self.client.get_browser_status(),
+            )
             self.device_info = device_info
+            self.display_info = {str(d.bus): d for d in displays}
+            self._track_bus_ids(displays)
 
-            # Fetch initial desk status
-            desk_status = await self.client.get_desk_status()
-
-            # Fetch display list and states
-            displays = await self.client.get_displays()
-            self.display_info = {str(display.bus): display for display in displays}
-            display_states: dict[str, Display] = {}
-            for display in displays:
-                try:
-                    state = await self.client.get_display_status(display.bus)
-                    display_states[str(display.bus)] = state
-                except NetlinkError as err:
-                    _LOGGER.warning(
-                        "Failed to get display %s status: %s", display.bus, err
-                    )
-                    bus_key = str(display.bus)
-                    if self.data and bus_key in self.data.get("displays", {}):
-                        display_states[bus_key] = self.data["displays"][bus_key]
-
-            self._known_bus_ids = set(display_states.keys())
-
-            # Fetch initial browser status
-            browser_state = await self.client.get_browser_status()
+            display_results = await asyncio.gather(
+                *[self._fetch_display_status(d) for d in displays]
+            )
+            display_states: dict[str, Display] = {
+                bus_key: state
+                for bus_key, state in display_results
+                if state is not None
+            }
 
             coordinator_data: dict[str, Any] = {
                 "desk": desk_status,
@@ -130,6 +165,22 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             return coordinator_data
 
+    def display_supports(self, bus_id: str, capability: str) -> bool | None:
+        """Return whether a display supports a capability.
+
+        Checks live state first, then the stable inventory summary.
+        Returns None when no data is available yet.
+        """
+        for data in (
+            self.data["displays"].get(bus_id) if self.data else None,
+            self.display_info.get(bus_id),
+        ):
+            if data is not None:
+                supports = getattr(data, "supports", None)
+                if isinstance(supports, dict) and capability in supports:
+                    return bool(supports[capability])
+        return None
+
     def async_add_new_display_callback(self, callback: Callable[[str], None]) -> None:
         """Register a callback to be called when a new display is discovered."""
         self._new_display_callbacks.append(callback)
@@ -143,7 +194,6 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_setup(self) -> None:
         """Setup WebSocket listeners and fetch initial data."""
 
-        # Register WebSocket event handlers
         @self.client.on("connect")
         async def on_connect(_: dict[str, Any]) -> None:
             """Handle WebSocket reconnect events."""
@@ -181,15 +231,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except NetlinkDataError as exc:
                 _LOGGER.warning("Skipping incomplete desk state: %s", exc)
                 return
-
-            current = self.data or {}
-            self.async_set_updated_data(
-                {
-                    **current,
-                    "desk": desk,
-                    "displays": current.get("displays", {}),
-                }
-            )
+            self._patch_data("desk", desk)
 
         @self.client.on(EVENT_DISPLAY_STATE)
         async def on_display_state(data: dict[str, Any]) -> None:
@@ -200,23 +242,10 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except NetlinkDataError as exc:
                 _LOGGER.warning("Skipping incomplete display %s state: %s", bus_id, exc)
                 return
-
-            current = self.data or {}
-            displays = dict(current.get("displays", {}))
+            displays = dict((self.data or {}).get("displays", {}))
             displays[bus_id] = display
-
-            self.async_set_updated_data(
-                {
-                    **current,
-                    "desk": current.get("desk", {}),
-                    "displays": displays,
-                }
-            )
-
-            if self._initial_refresh_done and bus_id not in self._known_bus_ids:
-                self._known_bus_ids.add(bus_id)
-                for callback in self._new_display_callbacks:
-                    callback(bus_id)
+            self._patch_data("displays", displays)
+            self._track_bus_id(bus_id)
 
         @self.client.on(EVENT_BROWSER_STATE)
         async def on_browser_state(data: dict[str, Any]) -> None:
@@ -226,9 +255,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except NetlinkDataError as exc:
                 _LOGGER.warning("Skipping incomplete browser state: %s", exc)
                 return
-
-            current = self.data or {}
-            self.async_set_updated_data({**current, "browser": browser})
+            self._patch_data("browser", browser)
 
         @self.client.on(EVENT_ACCESS_CODES_STATE)
         async def on_access_codes_state(data: dict[str, Any]) -> None:
@@ -238,15 +265,8 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except NetlinkDataError as exc:
                 _LOGGER.warning("Skipping incomplete access code state: %s", exc)
                 return
-
-            current = self.data or {}
-            had_access_codes = "access_codes" in current
-            self.async_set_updated_data(
-                {
-                    **current,
-                    "access_codes": access_codes,
-                }
-            )
+            had_access_codes = "access_codes" in (self.data or {})
+            self._patch_data("access_codes", access_codes)
             if self._initial_refresh_done and not had_access_codes:
                 for callback in self._access_codes_available_callbacks:
                     callback()
@@ -256,42 +276,34 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             """Handle display list updates."""
             displays = [DisplaySummary.from_dict(item) for item in data]
             self.display_info = {str(display.bus): display for display in displays}
+            self._track_bus_ids(displays)
 
-        # Connect WebSocket
         try:
             await self.client.connect()
         except Exception:
             await self.client.disconnect()
             raise
 
-        # Fetch initial data
+        self.known_bus_ids.update(
+            bus_id for bus_id, _ in self._iter_registry_display_buses()
+        )
+
         await self.async_config_entry_first_refresh()
         self._initial_refresh_done = True
-
-        # Remove orphaned display devices from previous sessions
         self._async_cleanup_stale_devices()
 
     def _async_cleanup_stale_devices(self) -> None:
-        """Remove display devices in the registry that are no longer present."""
-        prefix = f"netlink-{self.device_id}-display-"
+        """Remove display devices that are no longer in the webserver inventory."""
         device_reg = dr.async_get(self.hass)
-        for device in dr.async_entries_for_config_entry(
-            device_reg, self.config_entry.entry_id
-        ):
-            for domain, identifier in device.identifiers:
-                if domain == DOMAIN and identifier.startswith(prefix):
-                    bus_id = identifier[len(prefix) :]
-                    if bus_id not in self._known_bus_ids:
-                        device_reg.async_update_device(
-                            device.id,
-                            remove_config_entry_id=self.config_entry.entry_id,
-                        )
-                        _LOGGER.debug(
-                            "Removed orphaned display device %s (bus %s)",
-                            device.id,
-                            bus_id,
-                        )
-                    break
+        for bus_id, device in self._iter_registry_display_buses():
+            if bus_id not in self.display_info:
+                device_reg.async_update_device(
+                    device.id,
+                    remove_config_entry_id=self.config_entry.entry_id,
+                )
+                _LOGGER.debug(
+                    "Removed orphaned display device %s (bus %s)", device.id, bus_id
+                )
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator and disconnect WebSocket."""
