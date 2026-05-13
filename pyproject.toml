@@ -24,7 +24,7 @@ classifiers = [
 ]
 requires-python = ">=3.14.2"
 dependencies = [
-    "homeassistant>=2026.3.0",
+    "homeassistant>=2026.5.0",
 ]
 
 [dependency-groups]
