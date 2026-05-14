@@ -80,6 +80,7 @@ class NetlinkDeskSwitch(NetlinkControllerEntity, SwitchEntity):
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
             ) from err
 
     async def async_turn_off(self, **_: Any) -> None:
@@ -89,6 +90,7 @@ class NetlinkDeskSwitch(NetlinkControllerEntity, SwitchEntity):
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
             ) from err
 
 
@@ -123,6 +125,7 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
             ) from err
 
     async def async_turn_off(self, **_: Any) -> None:
@@ -132,6 +135,7 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
             ) from err
 
 

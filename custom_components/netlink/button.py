@@ -99,6 +99,7 @@ class NetlinkDeskButton(NetlinkControllerEntity, ButtonEntity):
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
             ) from err
 
 
@@ -124,4 +125,5 @@ class NetlinkBrowserButton(NetlinkControllerEntity, ButtonEntity):
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
             ) from err
