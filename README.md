@@ -104,7 +104,7 @@ The device will be added immediately.
 
 Each NetLink device creates multiple HA devices:
 
-- **Main device**: `{device_name}` (Browser entities)
+- **Main device**: `{device_name}` (Browser and system entities)
 - **Desk device**: `{device_name} (Desk)` (Desk entities)
 - **Display device(s)**: `{device_name} (Display {bus_id})` (Per display)
 
@@ -143,6 +143,12 @@ Each NetLink device creates multiple HA devices:
 | Entity Type | Entity | Description |
 |------------|--------|-------------|
 | **Button** | `button.browser_refresh` | Refresh browser |
+
+### ⚙️ System Entities
+
+| Entity Type | Entity | Description |
+|------------|--------|-------------|
+| **Button** | `button.device_reboot` | Reboot NetLink device |
 
 ### 🔐 Diagnostic Access Code Entities
 

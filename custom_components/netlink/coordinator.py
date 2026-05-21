@@ -284,10 +284,6 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self.client.disconnect()
             raise
 
-        self.known_bus_ids.update(
-            bus_id for bus_id, _ in self._iter_registry_display_buses()
-        )
-
         await self.async_config_entry_first_refresh()
         self._initial_refresh_done = True
         self._async_cleanup_stale_devices()
