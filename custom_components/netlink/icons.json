@@ -80,6 +80,9 @@
       },
       "browser_refresh": {
         "default": "mdi:refresh"
+      },
+      "device_reboot": {
+        "default": "mdi:restart"
       }
     }
   }

@@ -5,13 +5,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from pynetlink import NetlinkCommandError, NetlinkConnectionError
+from pynetlink import NetlinkCommandError, NetlinkConnectionError, NetlinkTimeoutError
 
-from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.components.button import (
+    ButtonDeviceClass,
+    ButtonEntity,
+    ButtonEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -57,6 +61,17 @@ BROWSER_BUTTONS: list[NetlinkButtonEntityDescription] = [
 ]
 
 
+SYSTEM_BUTTONS: list[NetlinkButtonEntityDescription] = [
+    NetlinkButtonEntityDescription(
+        key="device_reboot",
+        translation_key="device_reboot",
+        device_class=ButtonDeviceClass.RESTART,
+        entity_category=EntityCategory.CONFIG,
+        press_fn=lambda client: client.reboot_device(),
+    ),
+]
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -72,6 +87,10 @@ async def async_setup_entry(
     entities.extend(
         NetlinkBrowserButton(coordinator, entry, description)
         for description in BROWSER_BUTTONS
+    )
+    entities.extend(
+        NetlinkSystemButton(coordinator, entry, description)
+        for description in SYSTEM_BUTTONS
     )
 
     async_add_entities(entities)
@@ -95,7 +114,11 @@ class NetlinkDeskButton(NetlinkControllerEntity, ButtonEntity):
     async def async_press(self) -> None:
         try:
             await self.entity_description.press_fn(self.coordinator.client)
-        except (NetlinkCommandError, NetlinkConnectionError) as err:
+        except (
+            NetlinkCommandError,
+            NetlinkConnectionError,
+            NetlinkTimeoutError,
+        ) as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",
@@ -121,7 +144,41 @@ class NetlinkBrowserButton(NetlinkControllerEntity, ButtonEntity):
     async def async_press(self) -> None:
         try:
             await self.entity_description.press_fn(self.coordinator.client)
-        except (NetlinkCommandError, NetlinkConnectionError) as err:
+        except (
+            NetlinkCommandError,
+            NetlinkConnectionError,
+            NetlinkTimeoutError,
+        ) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+                translation_placeholders={"name": self.device_name},
+            ) from err
+
+
+class NetlinkSystemButton(NetlinkControllerEntity, ButtonEntity):
+    """Main controller system button entity."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: NetlinkDataUpdateCoordinator,
+        entry: ConfigEntry,
+        description: NetlinkButtonEntityDescription,
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self.entity_description = description
+        self._attr_unique_id = f"{self.device_id}_{description.key}"
+
+    async def async_press(self) -> None:
+        try:
+            await self.entity_description.press_fn(self.coordinator.client)
+        except (
+            NetlinkCommandError,
+            NetlinkConnectionError,
+            NetlinkTimeoutError,
+        ) as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="command_failed",

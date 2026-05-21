@@ -176,6 +176,9 @@
       },
       "browser_refresh": {
         "name": "Browser vernieuwen"
+      },
+      "device_reboot": {
+        "name": "Device herstarten"
       }
     },
     "binary_sensor": {

@@ -175,6 +175,9 @@
       },
       "browser_refresh": {
         "name": "Refresh"
+      },
+      "device_reboot": {
+        "name": "Reboot"
       }
     },
     "binary_sensor": {
