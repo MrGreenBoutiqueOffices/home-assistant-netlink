@@ -15,7 +15,6 @@ from homeassistant.components.button import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -39,13 +38,11 @@ DESK_BUTTONS: list[NetlinkButtonEntityDescription] = [
     NetlinkButtonEntityDescription(
         key="desk_reset",
         translation_key="desk_reset",
-        entity_category=EntityCategory.CONFIG,
         press_fn=lambda client: client.reset_desk(),
     ),
     NetlinkButtonEntityDescription(
         key="desk_calibrate",
         translation_key="desk_calibrate",
-        entity_category=EntityCategory.CONFIG,
         entity_registry_enabled_default=False,
         press_fn=lambda client: client.calibrate_desk(),
     ),
@@ -66,7 +63,6 @@ SYSTEM_BUTTONS: list[NetlinkButtonEntityDescription] = [
         key="device_reboot",
         translation_key="device_reboot",
         device_class=ButtonDeviceClass.RESTART,
-        entity_category=EntityCategory.CONFIG,
         press_fn=lambda client: client.reboot_device(),
     ),
 ]
