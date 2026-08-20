@@ -31,8 +31,14 @@ dependencies = [
 dev = [
     "pre-commit-hooks==6.0.0",
     "prek==0.4.14",
+    "pynetlink==1.5.0",
+    "pytest-homeassistant-custom-component==0.13.356",
     "ruff==0.15.22",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
