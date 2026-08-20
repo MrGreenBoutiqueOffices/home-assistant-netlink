@@ -40,12 +40,12 @@
       },
       "manual": {
         "title": "Manual token entry",
-        "description": "Enter your authentication token for {host}.",
+        "description": "Enter the dedicated Home Assistant service token for {host}. A legacy REST bearer token remains supported during migration.",
         "data": {
           "token": "[%key:common::config_flow::data::token%]"
         },
         "data_description": {
-          "token": "Find this token in the NetLink web interface settings."
+          "token": "Use the dedicated Home Assistant service token from the NetLink device configuration. Never use a signing maintenance code."
         }
       },
       "discovery_confirm": {
@@ -76,7 +76,7 @@
       },
       "reauth_confirm": {
         "title": "[%key:common::config_flow::title::reauth%]",
-        "description": "The authentication token for {host} is no longer valid. Please enter a new token.",
+        "description": "Enter the dedicated Home Assistant service token for {host}. Reauthentication replaces the credential without recreating entities or devices.",
         "data": {
           "token": "[%key:common::config_flow::data::token%]"
         }
@@ -95,6 +95,9 @@
     },
     "command_unavailable": {
       "message": "The command could not be sent to {name}. The device may be offline or unreachable."
+    },
+    "command_not_authorized": {
+      "message": "The NetLink authorization policy does not permit this command for {name}. Check that the dedicated Home Assistant service token is configured."
     }
   },
   "entity": {

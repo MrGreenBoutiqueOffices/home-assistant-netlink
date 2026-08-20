@@ -214,6 +214,8 @@ async def test_reauth_manual_updates_existing_entry(hass: HomeAssistant) -> None
         unique_id=DEVICE_ID,
     )
     entry.add_to_hass(hass)
+    original_entry_id = entry.entry_id
+    original_unique_id = entry.unique_id
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
@@ -239,6 +241,8 @@ async def test_reauth_manual_updates_existing_entry(hass: HomeAssistant) -> None
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
     assert entry.data[CONF_TOKEN] == "new-token"
+    assert entry.entry_id == original_entry_id
+    assert entry.unique_id == original_unique_id
     reload_entry.assert_awaited_once_with(entry.entry_id)
 
 

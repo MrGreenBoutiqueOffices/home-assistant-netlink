@@ -31,7 +31,7 @@ This native Home Assistant integration provides **real-time control** over NetLi
 
 - Home Assistant >= 2026.5.0
 - NetLink device with REST API, WebSocket, and OAuth 2.0 support
-- Authentication via OAuth 2.0 (recommended) or bearer token
+- Authentication via OAuth 2.0 or a dedicated Home Assistant service token
 
 ## Installation
 
@@ -94,6 +94,27 @@ If automatic discovery doesn't work:
 The device will be added immediately.
 
 </details>
+
+### Home Assistant service identity
+
+For managed NetLink devices, use the dedicated Home Assistant service token. It
+identifies Home Assistant as a trusted machine integration and does not require a
+human signing-maintenance code. Existing `REST_BEARER_TOKEN` credentials remain
+compatible during the fleet migration window.
+
+To rotate from a legacy token, start reauthentication from the existing NetLink
+config entry and enter the dedicated token. Home Assistant updates the credential
+in place, so entity and device identifiers remain unchanged. Roll back by entering
+the legacy token again while the server compatibility window is active. Never put
+real token values in documentation, diagnostics, logs, or issue reports. Fleet
+provisioning order and rollback are tracked in
+[`netlink_balena#891`](https://github.com/MrGreenBoutiqueOffices/netlink_balena/issues/891).
+
+Newer servers advertise an effective `authorization.state` policy over the existing
+WebSocket connection. Command entities become unavailable when that policy omits
+their command. Older servers that do not advertise the event keep their previous
+entity behavior. An authorization denial is treated as a credential or server-policy
+problem and never as a prompt for a maintenance PIN.
 
 ## Entities
 
@@ -162,6 +183,7 @@ Each NetLink device creates multiple HA devices:
 > [!NOTE]
 > These entities are disabled by default and only appear when the NetLink webserver exposes daily access codes.
 > Individual access code sensors can be unknown when that login uses a static PIN or is not configured.
+> If the configured identity is not allowed to receive access codes, these sensitive entities are unavailable while unrelated desk and display entities continue working.
 
 </details>
 

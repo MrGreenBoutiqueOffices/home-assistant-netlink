@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from pynetlink import NetlinkCommandError, NetlinkConnectionError
+from pynetlink import (
+    EVENT_AUTHORIZATION_STATE,
+    NetlinkCommandError,
+    NetlinkConnectionError,
+    NetlinkUnauthorizedError,
+)
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -17,7 +22,12 @@ from custom_components.netlink.sensor import (
     _access_code_value,
 )
 
-from .conftest import DEVICE_ID, FakeNetlinkClient
+from .conftest import (
+    DEVICE_ID,
+    FakeNetlinkClient,
+    authorization_payload,
+    authorization_state,
+)
 
 
 def test_missing_access_code_values_are_none() -> None:
@@ -200,3 +210,33 @@ async def test_unsupported_display_command_is_ignored(
     )
 
     assert "rejected brightness change (unsupported)" in caplog.text
+
+
+async def test_typed_authorization_denial_is_recorded(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+) -> None:
+    """A server denial is user-visible and retained as a safe diagnostic category."""
+    await netlink_client.emit(
+        EVENT_AUTHORIZATION_STATE,
+        authorization_payload(authorization_state("command.browser.refresh")),
+    )
+    netlink_client.command_error = NetlinkUnauthorizedError(
+        "unauthorized",
+        command="command.browser.refresh",
+    )
+
+    with pytest.raises(HomeAssistantError):
+        await _call_entity_service(
+            hass,
+            "button",
+            "press",
+            _entity_id(hass, "button", f"{DEVICE_ID}_browser_refresh"),
+        )
+
+    assert (
+        setup_integration.runtime_data.last_authorization_failure
+        == "NetlinkUnauthorizedError"
+    )
+    assert netlink_client.commands == []

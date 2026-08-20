@@ -7,9 +7,15 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.const import CONF_TOKEN
 from homeassistant.core import HomeAssistant
 
+from custom_components.netlink.coordinator import EXPECTED_HOME_ASSISTANT_COMMANDS
 from custom_components.netlink.diagnostics import async_get_config_entry_diagnostics
 
-from .conftest import TOKEN
+from .conftest import (
+    TOKEN,
+    FakeNetlinkClient,
+    authorization_payload,
+    authorization_state,
+)
 
 
 async def test_diagnostics_include_state_and_redact_secrets(
@@ -63,3 +69,32 @@ async def test_diagnostics_support_partial_runtime_state(
     coordinator.data = {"displays": {}}
     diagnostics = await async_get_config_entry_diagnostics(hass, setup_integration)
     assert diagnostics["coordinator"]["data"] == {"displays": {}}
+
+
+async def test_diagnostics_include_safe_authorization_metadata(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+) -> None:
+    """Diagnostics expose effective policy metadata without credential material."""
+    policy = authorization_state(
+        "command.browser.refresh",
+        "command.desk.stop",
+        access_codes=False,
+    )
+    await netlink_client.emit("authorization.state", authorization_payload(policy))
+    diagnostics = await async_get_config_entry_diagnostics(hass, setup_integration)
+
+    authorization = diagnostics["coordinator"]["authorization"]
+    assert authorization == {
+        "state_received": True,
+        "policy_version": 1,
+        "allowed_commands": ["command.browser.refresh", "command.desk.stop"],
+        "missing_expected_commands": sorted(
+            EXPECTED_HOME_ASSISTANT_COMMANDS - policy.allowed_commands
+        ),
+        "access_codes_event_allowed": False,
+        "access_codes_status": "unauthorized",
+        "last_failure_category": None,
+    }
+    assert TOKEN not in str(authorization)

@@ -19,10 +19,7 @@ from homeassistant.components.number import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfLength
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
-from .const import DOMAIN
 
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
@@ -34,6 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 class NetlinkNumberEntityDescription(NumberEntityDescription):
     """Number entity description with value resolver."""
 
+    command: str
     value_fn: Callable[[object], int | float]
     set_fn: Callable | None = None
 
@@ -42,6 +40,7 @@ DESK_NUMBERS: list[NetlinkNumberEntityDescription] = [
     NetlinkNumberEntityDescription(
         key="desk_target_height",
         translation_key="desk_target_height",
+        command="command.desk.height",
         native_min_value=62,
         native_max_value=127,
         native_step=1,
@@ -55,6 +54,7 @@ DISPLAY_NUMBERS: list[NetlinkNumberEntityDescription] = [
     NetlinkNumberEntityDescription(
         key="brightness",
         translation_key="display_brightness",
+        command="command.display.brightness",
         native_min_value=0,
         native_max_value=100,
         native_step=1,
@@ -67,6 +67,7 @@ DISPLAY_NUMBERS: list[NetlinkNumberEntityDescription] = [
     NetlinkNumberEntityDescription(
         key="volume",
         translation_key="display_volume",
+        command="command.display.volume",
         native_min_value=0,
         native_max_value=100,
         native_step=1,
@@ -90,6 +91,7 @@ class NetlinkDeskNumber(NetlinkControllerEntity, NumberEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self.entity_description = description
+        self.command = description.command
         self._attr_unique_id = f"{self.device_id}_desk_{description.key}"
 
     @property
@@ -100,18 +102,12 @@ class NetlinkDeskNumber(NetlinkControllerEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         try:
             await self.coordinator.client.set_desk_height(value)
-        except NetlinkCommandError as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_failed",
-                translation_placeholders={"name": self.device_name},
-            ) from err
-        except (NetlinkConnectionError, NetlinkTimeoutError) as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_unavailable",
-                translation_placeholders={"name": self.device_name},
-            ) from err
+        except (
+            NetlinkCommandError,
+            NetlinkConnectionError,
+            NetlinkTimeoutError,
+        ) as err:
+            raise self._command_error(err) from err
 
 
 class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
@@ -126,6 +122,7 @@ class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
     ) -> None:
         super().__init__(coordinator, entry, bus_id)
         self.entity_description = description
+        self.command = description.command
         self._attr_unique_id = f"{self.device_id}_display_{bus_id}_{description.key}"
 
     @property
@@ -153,17 +150,9 @@ class NetlinkDisplayNumber(NetlinkDisplayEntity, NumberEntity):
                     "Display %s rejected %s change (unsupported)", self.bus_id, key
                 )
                 return
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_failed",
-                translation_placeholders={"name": self.device_name},
-            ) from err
+            raise self._command_error(err) from err
         except (NetlinkConnectionError, NetlinkTimeoutError) as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_unavailable",
-                translation_placeholders={"name": self.device_name},
-            ) from err
+            raise self._command_error(err) from err
 
 
 async def async_setup_entry(

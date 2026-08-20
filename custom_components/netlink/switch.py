@@ -5,7 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from pynetlink import NetlinkCommandError, NetlinkConnectionError
+from pynetlink import (
+    NetlinkCommandError,
+    NetlinkConnectionError,
+    NetlinkTimeoutError,
+)
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -15,10 +19,8 @@ from homeassistant.components.switch import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
 
@@ -27,6 +29,7 @@ from .entity import NetlinkControllerEntity, NetlinkDisplayEntity
 class NetlinkSwitchEntityDescription(SwitchEntityDescription):
     """Switch entity description with value resolver."""
 
+    command: str
     value_fn: Callable[[object], str | bool]
 
 
@@ -34,6 +37,7 @@ DESK_SWITCHES: list[NetlinkSwitchEntityDescription] = [
     NetlinkSwitchEntityDescription(
         key="beep",
         translation_key="desk_beep",
+        command="command.desk.beep",
         entity_category=EntityCategory.CONFIG,
         value_fn=lambda data: data.state.beep,
     ),
@@ -44,6 +48,7 @@ DISPLAY_SWITCHES: list[NetlinkSwitchEntityDescription] = [
     NetlinkSwitchEntityDescription(
         key="power",
         translation_key="display_power",
+        command="command.display.power",
         device_class=SwitchDeviceClass.OUTLET,
         value_fn=lambda data: data.state.power,
     ),
@@ -63,6 +68,7 @@ class NetlinkDeskSwitch(NetlinkControllerEntity, SwitchEntity):
     ) -> None:
         super().__init__(coordinator, entry)
         self.entity_description = description
+        self.command = description.command
         self._attr_unique_id = f"{self.device_id}_desk_{description.key}"
 
     @property
@@ -76,22 +82,22 @@ class NetlinkDeskSwitch(NetlinkControllerEntity, SwitchEntity):
     async def async_turn_on(self, **_: Any) -> None:
         try:
             await self.coordinator.client.set_desk_beep(state="on")
-        except (NetlinkCommandError, NetlinkConnectionError) as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_failed",
-                translation_placeholders={"name": self.device_name},
-            ) from err
+        except (
+            NetlinkCommandError,
+            NetlinkConnectionError,
+            NetlinkTimeoutError,
+        ) as err:
+            raise self._command_error(err) from err
 
     async def async_turn_off(self, **_: Any) -> None:
         try:
             await self.coordinator.client.set_desk_beep(state="off")
-        except (NetlinkCommandError, NetlinkConnectionError) as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_failed",
-                translation_placeholders={"name": self.device_name},
-            ) from err
+        except (
+            NetlinkCommandError,
+            NetlinkConnectionError,
+            NetlinkTimeoutError,
+        ) as err:
+            raise self._command_error(err) from err
 
 
 class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
@@ -106,6 +112,7 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
     ) -> None:
         super().__init__(coordinator, entry, bus_id)
         self.entity_description = description
+        self.command = description.command
         self._attr_unique_id = f"{self.device_id}_display_{bus_id}_{description.key}"
 
     @property
@@ -121,22 +128,22 @@ class NetlinkDisplaySwitch(NetlinkDisplayEntity, SwitchEntity):
     async def async_turn_on(self, **_: Any) -> None:
         try:
             await self.coordinator.client.set_display_power(self.bus_id, "on")
-        except (NetlinkCommandError, NetlinkConnectionError) as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_failed",
-                translation_placeholders={"name": self.device_name},
-            ) from err
+        except (
+            NetlinkCommandError,
+            NetlinkConnectionError,
+            NetlinkTimeoutError,
+        ) as err:
+            raise self._command_error(err) from err
 
     async def async_turn_off(self, **_: Any) -> None:
         try:
             await self.coordinator.client.set_display_power(self.bus_id, "off")
-        except (NetlinkCommandError, NetlinkConnectionError) as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_failed",
-                translation_placeholders={"name": self.device_name},
-            ) from err
+        except (
+            NetlinkCommandError,
+            NetlinkConnectionError,
+            NetlinkTimeoutError,
+        ) as err:
+            raise self._command_error(err) from err
 
 
 async def async_setup_entry(
