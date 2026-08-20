@@ -1424,7 +1424,7 @@ dev = [
     { name = "coverage", specifier = "==7.15.2" },
     { name = "pre-commit-hooks", specifier = "==6.0.0" },
     { name = "prek", specifier = "==0.4.14" },
-    { name = "pynetlink", specifier = "==1.5.0" },
+    { name = "pynetlink", specifier = "==1.6.0" },
     { name = "pytest-asyncio", specifier = "==1.4.0" },
     { name = "pytest-cov", specifier = "==7.1.0" },
     { name = "pytest-homeassistant-custom-component", specifier = "==0.13.356" },
@@ -1887,7 +1887,7 @@ wheels = [
 
 [[package]]
 name = "pynetlink"
-version = "1.5.0"
+version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1896,9 +1896,9 @@ dependencies = [
     { name = "yarl" },
     { name = "zeroconf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c7/92/99edda5cca92506d5f9c3a98b6ca1c8361a8d6da1eb46d240987e0b0bc10/pynetlink-1.5.0.tar.gz", hash = "sha256:6c56964f8c16dc9423d10c9468f54d5b43ac0b26047fb2520f17e979096897d2", size = 23453, upload-time = "2026-05-21T13:11:35.096Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9d/36/eef418ae12b6b3ae9058dc6927f18e597ee99b5787658cf0c37881ae2633/pynetlink-1.6.0.tar.gz", hash = "sha256:f969afa77739117d7b89e51821f329463dba4213c963257a125c2e74dbbf4270", size = 25004, upload-time = "2026-08-20T16:17:28.943Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/1b/7e62395b70ac3163ad9b4addb464c4365437ef931e86f409d649c0787fea/pynetlink-1.5.0-py3-none-any.whl", hash = "sha256:6114840c8a120bb50dd601877081e8e2572d5bd6eba78d04e933497a7e1478ca", size = 25988, upload-time = "2026-05-21T13:11:33.858Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/a4/6254a2566ff26462d483a9b0be0d5cb3c35d20b817af76d41f519801a1d2/pynetlink-1.6.0-py3-none-any.whl", hash = "sha256:91d58eca3535cac65f832e114d8fa65cf809e2db2633c99fa28699968bcf9fa8", size = 28040, upload-time = "2026-08-20T16:17:27.668Z" },
 ]
 
 [[package]]
