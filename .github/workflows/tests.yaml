@@ -23,7 +23,7 @@ jobs:
         with:
           persist-credentials: false
       - name: 🏗 Set up UV
-        uses: astral-sh/setup-uv@v8.3.2
+        uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
           python-version: ${{ env.DEFAULT_PYTHON }}
@@ -55,7 +55,7 @@ jobs:
           name: coverage-${{ env.DEFAULT_PYTHON }}
           path: coverage-${{ env.DEFAULT_PYTHON }}
       - name: 🏗 Set up UV
-        uses: astral-sh/setup-uv@v8.3.2
+        uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
           python-version: ${{ env.DEFAULT_PYTHON }}
