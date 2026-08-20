@@ -121,6 +121,30 @@ async def test_transient_disconnect_does_not_flap_entity_availability(
     )
 
 
+async def test_duplicate_and_late_connection_events_are_harmless(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+) -> None:
+    """Repeated and post-unload socket events do not disturb the entry lifecycle."""
+    await netlink_client.emit("connect")
+    await netlink_client.emit("disconnect")
+    await netlink_client.emit("disconnect")
+    await netlink_client.emit("connect")
+    await hass.async_block_till_done()
+
+    assert all(
+        state.state != STATE_UNAVAILABLE
+        for state in _states_for_entry(hass, setup_integration)
+    )
+
+    assert await hass.config_entries.async_unload(setup_integration.entry_id)
+    await netlink_client.emit("connect")
+    await netlink_client.emit("disconnect")
+
+    assert netlink_client.connected is False
+
+
 async def test_sustained_disconnect_makes_all_entities_unavailable(
     hass: HomeAssistant,
     setup_integration: MockConfigEntry,

@@ -2,20 +2,27 @@
 
 from __future__ import annotations
 
+import logging
+from unittest.mock import patch
+
 from pynetlink import (
+    AccessCodes,
+    BrowserState,
     EVENT_ACCESS_CODES_STATE,
     EVENT_BROWSER_STATE,
     EVENT_DESK_STATE,
     EVENT_DEVICE_INFO,
     EVENT_DISPLAY_STATE,
     EVENT_DISPLAYS_LIST,
-    BrowserState,
+    Desk,
     DeviceInfo,
     Display,
     DisplayState,
     DisplaySummary,
+    NetlinkDataError,
     NetlinkNotFoundError,
 )
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from homeassistant.core import HomeAssistant
@@ -24,6 +31,62 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from custom_components.netlink.const import DOMAIN
 
 from .conftest import DEVICE_ID, FakeNetlinkClient
+
+
+@pytest.mark.parametrize(
+    ("event", "model", "payload", "warning"),
+    [
+        (
+            EVENT_DESK_STATE,
+            Desk,
+            {},
+            "Skipping incomplete desk state",
+        ),
+        (
+            EVENT_DISPLAY_STATE,
+            Display,
+            {"bus": 1},
+            "Skipping incomplete display 1 state",
+        ),
+        (
+            EVENT_BROWSER_STATE,
+            BrowserState,
+            {},
+            "Skipping incomplete browser state",
+        ),
+        (
+            EVENT_ACCESS_CODES_STATE,
+            AccessCodes,
+            {},
+            "Skipping incomplete access code state",
+        ),
+    ],
+)
+async def test_incomplete_push_state_is_ignored(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+    caplog: pytest.LogCaptureFixture,
+    event: str,
+    model: type,
+    payload: dict,
+    warning: str,
+) -> None:
+    """An incomplete push event leaves the last known state available."""
+    caplog.set_level(logging.WARNING, logger="custom_components.netlink.coordinator")
+
+    with patch.object(
+        model, "from_dict", side_effect=NetlinkDataError("incomplete state")
+    ):
+        await netlink_client.emit(event, payload)
+    await hass.async_block_till_done()
+
+    assert warning in caplog.text
+    registry = er.async_get(hass)
+    height_id = registry.async_get_entity_id(
+        "sensor", DOMAIN, f"{DEVICE_ID}_desk_height"
+    )
+    assert float(hass.states.get(height_id).state) == 75
 
 
 async def test_push_events_update_home_assistant_state(

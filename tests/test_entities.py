@@ -180,3 +180,23 @@ async def test_entity_connection_errors_are_user_visible(
             _entity_id(hass, domain, f"{DEVICE_ID}_{unique_id}"),
             **data,
         )
+
+
+async def test_unsupported_display_command_is_ignored(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A display rejecting an optional command does not raise a service error."""
+    netlink_client.command_error = NetlinkCommandError("unsupported_command", "test")
+
+    await _call_entity_service(
+        hass,
+        "number",
+        "set_value",
+        _entity_id(hass, "number", f"{DEVICE_ID}_display_1_brightness"),
+        value=50,
+    )
+
+    assert "rejected brightness change (unsupported)" in caplog.text

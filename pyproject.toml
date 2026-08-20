@@ -29,28 +29,34 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "covdefaults==2.3.0",
+    "coverage==7.15.2",
     "pre-commit-hooks==6.0.0",
     "prek==0.4.14",
     "pynetlink==1.5.0",
+    "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
     "pytest-homeassistant-custom-component==0.13.356",
     "ruff==0.15.22",
 ]
 
-[tool.pytest.ini_options]
-addopts = [
-    "--cov=custom_components/netlink",
-    "--cov-fail-under=95",
-    "--cov-report=term-missing",
-]
-asyncio_mode = "auto"
-testpaths = ["tests"]
+[tool.coverage.run]
+plugins = ["covdefaults"]
+source = ["custom_components"]
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["custom_components/netlink"]
+
+[tool.pytest.ini_options]
+addopts = "--cov"
+asyncio_mode = "auto"
 
 [tool.ruff]
 src = ["custom_components/netlink"]
