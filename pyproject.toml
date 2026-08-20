@@ -37,7 +37,7 @@ dev = [
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
     "pytest-homeassistant-custom-component==0.13.356",
-    "ruff==0.15.22",
+    "ruff==0.16.3",
 ]
 
 [tool.coverage.run]
@@ -60,6 +60,7 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 src = ["custom_components/netlink"]
+lint.ignore = ["I001", "SIM117", "UP035"]
 
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
 "homeassistant.helpers.area_registry" = "ar"
