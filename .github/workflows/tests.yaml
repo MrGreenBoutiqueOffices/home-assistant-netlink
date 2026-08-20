@@ -15,17 +15,8 @@ permissions:
 
 jobs:
   pytest:
-    name: Python ${{ matrix.python }}
+    name: Python ${{ env.DEFAULT_PYTHON }}
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.experimental }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - python: "3.14"
-            experimental: false
-          - python: "3.15"
-            experimental: true
     steps:
       - name: ⬇️ Check out code from GitHub
         uses: actions/checkout@v6.1.0
@@ -35,18 +26,37 @@ jobs:
         uses: astral-sh/setup-uv@v8.3.2
         with:
           enable-cache: true
-          python-version: ${{ matrix.python }}
+          python-version: ${{ env.DEFAULT_PYTHON }}
       - name: 🏗 Install project dependencies
         run: uv sync --frozen --dev
       - name: 🧪 Run integration tests
         run: uv run pytest -v --cov custom_components
       - name: ⬆️ Upload coverage artifact
-        if: matrix.python == env.DEFAULT_PYTHON
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: coverage-${{ matrix.python }}
+          name: coverage-${{ env.DEFAULT_PYTHON }}
           include-hidden-files: true
           path: .coverage
+
+  pytest-experimental:
+    name: Python 3.15 (experimental)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 15
+    steps:
+      - name: ⬇️ Check out code from GitHub
+        uses: actions/checkout@v6.1.0
+        with:
+          persist-credentials: false
+      - name: 🏗 Set up UV
+        uses: astral-sh/setup-uv@v8.3.2
+        with:
+          enable-cache: true
+          python-version: "3.15"
+      - name: 🏗 Install project dependencies
+        run: uv sync --frozen --dev
+      - name: 🧪 Run integration tests
+        run: uv run pytest -v --cov custom_components
 
   coverage:
     name: Coverage
