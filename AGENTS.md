@@ -4,7 +4,9 @@
 This repo is a Home Assistant custom integration: `custom_components/netlink/` (domain `netlink`).
 
 ## Architecture (what matters most)
-- **Push-based state**: initial REST fetch + WebSocket events. Do **not** add polling.
+- **Push-based state**: initial REST fetch + WebSocket events, plus a low-frequency
+  REST reconciliation snapshot for missed events and connection liveness. Do **not**
+  add entity-level polling or treat reconciliation as the primary update path.
 - Core state management lives in `custom_components/netlink/coordinator.py` (`NetlinkDataUpdateCoordinator`).
 - Entry setup is in `custom_components/netlink/__init__.py`:
 	- creates `NetlinkClient` and the coordinator

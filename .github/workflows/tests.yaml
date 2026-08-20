@@ -1,0 +1,71 @@
+---
+name: Tests
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DEFAULT_PYTHON: "3.14"
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: Python 3.14
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Check out code from GitHub
+        uses: actions/checkout@v6.1.0
+        with:
+          persist-credentials: false
+      - name: 🏗 Set up UV
+        uses: astral-sh/setup-uv@v8.3.2
+        with:
+          enable-cache: true
+          python-version: ${{ env.DEFAULT_PYTHON }}
+      - name: 🏗 Install project dependencies
+        run: uv sync --frozen --dev
+      - name: 🧪 Run integration tests
+        run: uv run pytest -v --cov custom_components
+      - name: ⬆️ Upload coverage artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: coverage-${{ env.DEFAULT_PYTHON }}
+          include-hidden-files: true
+          path: .coverage
+
+  coverage:
+    name: Coverage
+    needs: pytest
+    runs-on: ubuntu-latest
+    environment: testing
+    steps:
+      - name: ⬇️ Check out code from GitHub
+        uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: ⬇️ Download coverage data
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: coverage-${{ env.DEFAULT_PYTHON }}
+          path: coverage-${{ env.DEFAULT_PYTHON }}
+      - name: 🏗 Set up UV
+        uses: astral-sh/setup-uv@v8.3.2
+        with:
+          enable-cache: true
+          python-version: ${{ env.DEFAULT_PYTHON }}
+      - name: 🏗 Install project dependencies
+        run: uv sync --frozen --dev
+      - name: 🚀 Process coverage results
+        run: |
+          uv run coverage combine coverage*/.coverage*
+          uv run coverage xml -i
+      - name: 🚀 Upload coverage report
+        uses: codecov/codecov-action@v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

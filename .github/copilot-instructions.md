@@ -2,12 +2,12 @@
 
 ## Project overview
 - Home Assistant custom integration: `custom_components/netlink/` (domain: `netlink`). See `manifest.json` (iot_class `local_push`, zeroconf `_netlink._tcp.local.`, requirement `pynetlink==1.0.2`).
-- Architecture is **push-based**: initial REST fetch + WebSocket event updates (no polling). Core logic lives in `coordinator.py`.
+- Architecture is **push-based**: initial REST fetch + WebSocket event updates, with a low-frequency REST reconciliation snapshot for missed events and connection liveness. Do not add entity-level polling. Core logic lives in `coordinator.py`.
 
 ## Runtime data flow (important)
 - Entry setup: `custom_components/netlink/__init__.py` creates `NetlinkClient` + `NetlinkDataUpdateCoordinator` and stores it on `entry.runtime_data`.
 - Coordinator:
-  - `_async_update_data()` fetches initial state via REST (`get_device_info`, `get_desk_status`, `get_displays`, `get_display_status`).
+  - `_async_update_data()` fetches authoritative state via REST during setup, reconnect recovery, and low-frequency reconciliation (`get_device_info`, `get_desk_status`, `get_displays`, `get_display_status`).
   - `async_setup()` connects WebSocket and registers event handlers that call `async_set_updated_data(...)`.
 - Entities are **CoordinatorEntities**; do not add your own polling. Use `coordinator.data["desk"]` and `coordinator.data["displays"][bus_id]` patterns.
 

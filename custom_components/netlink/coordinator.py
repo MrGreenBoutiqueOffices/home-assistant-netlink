@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Iterator
 from contextlib import suppress
+from datetime import datetime
+from enum import Enum, auto
 import logging
 from typing import Any
 
@@ -30,14 +32,25 @@ from pynetlink import (
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN
+from .const import DOMAIN, RECONCILIATION_INTERVAL, WEBSOCKET_DISCONNECT_GRACE
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class _ConnectivityState(Enum):
+    """Authoritative connectivity state for coordinator data."""
+
+    INITIALIZING = auto()
+    READY = auto()
+    DISCONNECTED = auto()
+    RECOVERING = auto()
+    SHUTTING_DOWN = auto()
 
 
 class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -56,7 +69,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER,
             config_entry=config_entry,
             name=f"NetLink {device_id}",
-            update_interval=None,  # WebSocket push only, no polling!
+            update_interval=None,
         )
         self.client = client
         self.device_id = device_id
@@ -65,7 +78,42 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.known_bus_ids: set[str] = set()
         self._new_display_callbacks: list[Callable[[str], None]] = []
         self._access_codes_available_callbacks: list[Callable[[], None]] = []
-        self._initial_refresh_done = False
+        self._connectivity_state = _ConnectivityState.INITIALIZING
+        self._cancel_disconnect_grace: CALLBACK_TYPE | None = None
+        self._cancel_reconciliation: CALLBACK_TYPE | None = None
+        self._reconnect_lock = asyncio.Lock()
+
+    def _cancel_disconnect_timer(self) -> None:
+        """Cancel a pending disconnect grace timer."""
+        if self._cancel_disconnect_grace is None:
+            return
+        self._cancel_disconnect_grace()
+        self._cancel_disconnect_grace = None
+
+    async def _async_disconnect_grace_elapsed(self, _: datetime) -> None:
+        """Mark coordinator data unavailable after a sustained disconnect."""
+        self._cancel_disconnect_grace = None
+        if self._connectivity_state is not _ConnectivityState.DISCONNECTED:
+            return
+
+        self.async_set_update_error(UpdateFailed("WebSocket connection lost"))
+
+    def _push_updates_allowed(self) -> bool:
+        """Return whether push events may update authoritative live state."""
+        return self._connectivity_state is _ConnectivityState.READY
+
+    async def _async_reconcile(self, _: datetime) -> None:
+        """Refresh REST state periodically without replacing push updates."""
+        if (
+            self._connectivity_state
+            in {
+                _ConnectivityState.INITIALIZING,
+                _ConnectivityState.SHUTTING_DOWN,
+            }
+            or self._cancel_disconnect_grace is not None
+        ):
+            return
+        await self.async_refresh()
 
     def _iter_registry_display_buses(self) -> Iterator[tuple[str, dr.DeviceEntry]]:
         """Yield (bus_id, device) for all display devices in the HA device registry."""
@@ -84,7 +132,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if bus_id in self.known_bus_ids:
             return
         self.known_bus_ids.add(bus_id)
-        if self._initial_refresh_done:
+        if self._connectivity_state is not _ConnectivityState.INITIALIZING:
             for callback in self._new_display_callbacks:
                 callback(bus_id)
 
@@ -95,26 +143,18 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _patch_data(self, key: str, value: Any) -> None:
         """Update a single key in coordinator data and notify listeners."""
+        if not self._push_updates_allowed():
+            return
         self.async_set_updated_data({**(self.data or {}), key: value})
 
     async def _fetch_display_status(
         self, display: DisplaySummary
-    ) -> tuple[str, Display | None]:
-        """Fetch status for a single display, returning (bus_key, state_or_None)."""
-        bus_key = str(display.bus)
-        try:
-            return bus_key, await self.client.get_display_status(display.bus)
-        except NetlinkError as err:
-            _LOGGER.warning("Failed to get display %s status: %s", display.bus, err)
-            fallback = (self.data or {}).get("displays", {}).get(bus_key)
-            return bus_key, fallback
+    ) -> tuple[str, Display]:
+        """Fetch authoritative status for a display."""
+        return str(display.bus), await self.client.get_display_status(display.bus)
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch initial data via REST API.
-
-        This is called once during setup to get initial state.
-        After that, WebSocket events keep state updated.
-        """
+        """Fetch an authoritative state snapshot via REST API."""
         try:
             device_info, desk_status, displays, browser_state = await asyncio.gather(
                 self.client.get_device_info(),
@@ -122,18 +162,10 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.client.get_displays(),
                 self.client.get_browser_status(),
             )
-            self.device_info = device_info
-            self.display_info = {str(d.bus): d for d in displays}
-            self._track_bus_ids(displays)
-
             display_results = await asyncio.gather(
                 *[self._fetch_display_status(d) for d in displays]
             )
-            display_states: dict[str, Display] = {
-                bus_key: state
-                for bus_key, state in display_results
-                if state is not None
-            }
+            display_states = dict(display_results)
 
             coordinator_data: dict[str, Any] = {
                 "desk": desk_status,
@@ -145,6 +177,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 coordinator_data["access_codes"] = access_codes
 
         except NetlinkAuthenticationError as err:
+            self._mark_refresh_failed()
             raise ConfigEntryAuthFailed(
                 translation_domain=DOMAIN,
                 translation_key="auth_failed",
@@ -154,6 +187,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 },
             ) from err
         except (NetlinkError, NetlinkDataError) as err:
+            self._mark_refresh_failed()
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="cannot_connect",
@@ -163,7 +197,27 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 },
             ) from err
         else:
+            if not self.client.connected:
+                self._mark_refresh_failed()
+                raise UpdateFailed("WebSocket is disconnected")
+            self.device_info = device_info
+            self.display_info = {str(d.bus): d for d in displays}
+            self._track_bus_ids(displays)
+            self._connectivity_state = _ConnectivityState.READY
             return coordinator_data
+
+    def _mark_refresh_failed(self) -> None:
+        """Block push updates until a later authoritative refresh succeeds."""
+        if self._connectivity_state in {
+            _ConnectivityState.INITIALIZING,
+            _ConnectivityState.SHUTTING_DOWN,
+        }:
+            return
+        self._connectivity_state = (
+            _ConnectivityState.RECOVERING
+            if self.client.connected
+            else _ConnectivityState.DISCONNECTED
+        )
 
     def display_supports(self, bus_id: str, capability: str) -> bool | None:
         """Return whether a display supports a capability.
@@ -197,17 +251,39 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         @self.client.on("connect")
         async def on_connect(_: dict[str, Any]) -> None:
             """Handle WebSocket reconnect events."""
-            if self._initial_refresh_done:
+            if self._connectivity_state in {
+                _ConnectivityState.INITIALIZING,
+                _ConnectivityState.SHUTTING_DOWN,
+            }:
+                return
+
+            self._cancel_disconnect_timer()
+            async with self._reconnect_lock:
+                if self._connectivity_state is _ConnectivityState.READY:
+                    return
+                self._connectivity_state = _ConnectivityState.RECOVERING
                 await self.async_refresh()
 
         @self.client.on("disconnect")
         async def on_disconnect(_: dict[str, Any]) -> None:
             """Handle WebSocket disconnect events."""
-            _LOGGER.debug("WebSocket disconnected for %s", self.name)
+            if self._connectivity_state is _ConnectivityState.SHUTTING_DOWN:
+                return
+
+            self._connectivity_state = _ConnectivityState.DISCONNECTED
+            if self._cancel_disconnect_grace is not None:
+                return
+            self._cancel_disconnect_grace = async_call_later(
+                self.hass,
+                WEBSOCKET_DISCONNECT_GRACE,
+                self._async_disconnect_grace_elapsed,
+            )
 
         @self.client.on(EVENT_DEVICE_INFO)
         async def on_device_info(data: dict[str, Any]) -> None:
             """Handle device info updates."""
+            if not self._push_updates_allowed():
+                return
             self.device_info = DeviceInfo.from_dict(data)
             device_reg = dr.async_get(self.hass)
             for device in dr.async_entries_for_config_entry(
@@ -226,6 +302,8 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         @self.client.on(EVENT_DESK_STATE)
         async def on_desk_state(data: dict[str, Any]) -> None:
             """Handle desk state updates."""
+            if not self._push_updates_allowed():
+                return
             try:
                 desk = Desk.from_dict(data)
             except NetlinkDataError as exc:
@@ -236,6 +314,8 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         @self.client.on(EVENT_DISPLAY_STATE)
         async def on_display_state(data: dict[str, Any]) -> None:
             """Handle display state updates."""
+            if not self._push_updates_allowed():
+                return
             bus_id = str(data["bus"])
             try:
                 display = Display.from_dict(data)
@@ -250,6 +330,8 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         @self.client.on(EVENT_BROWSER_STATE)
         async def on_browser_state(data: dict[str, Any]) -> None:
             """Handle browser state updates."""
+            if not self._push_updates_allowed():
+                return
             try:
                 browser = BrowserState.from_dict(data)
             except NetlinkDataError as exc:
@@ -260,6 +342,8 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         @self.client.on(EVENT_ACCESS_CODES_STATE)
         async def on_access_codes_state(data: dict[str, Any]) -> None:
             """Handle push updates for access codes."""
+            if not self._push_updates_allowed():
+                return
             try:
                 access_codes = AccessCodes.from_dict(data)
             except NetlinkDataError as exc:
@@ -267,13 +351,15 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 return
             had_access_codes = "access_codes" in (self.data or {})
             self._patch_data("access_codes", access_codes)
-            if self._initial_refresh_done and not had_access_codes:
+            if not had_access_codes:
                 for callback in self._access_codes_available_callbacks:
                     callback()
 
         @self.client.on(EVENT_DISPLAYS_LIST)
         async def on_displays_list(data: list[dict[str, Any]]) -> None:
             """Handle display list updates."""
+            if not self._push_updates_allowed():
+                return
             displays = [DisplaySummary.from_dict(item) for item in data]
             self.display_info = {str(display.bus): display for display in displays}
             self._track_bus_ids(displays)
@@ -285,7 +371,11 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise
 
         await self.async_config_entry_first_refresh()
-        self._initial_refresh_done = True
+        self._cancel_reconciliation = async_track_time_interval(
+            self.hass,
+            self._async_reconcile,
+            RECONCILIATION_INTERVAL,
+        )
         self._async_cleanup_stale_devices()
 
     def _async_cleanup_stale_devices(self) -> None:
@@ -303,4 +393,12 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator and disconnect WebSocket."""
+        if self._connectivity_state is _ConnectivityState.SHUTTING_DOWN:
+            return
+        self._connectivity_state = _ConnectivityState.SHUTTING_DOWN
+        self._cancel_disconnect_timer()
+        if self._cancel_reconciliation is not None:
+            self._cancel_reconciliation()
+            self._cancel_reconciliation = None
+        await super().async_shutdown()
         await self.client.disconnect()
