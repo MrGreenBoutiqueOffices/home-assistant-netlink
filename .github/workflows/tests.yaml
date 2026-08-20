@@ -38,6 +38,7 @@ jobs:
 
   coverage:
     name: Coverage
+    needs: pytest
     runs-on: ubuntu-latest
     environment: testing
     steps:
@@ -49,7 +50,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.3.2
         with:
           enable-cache: true
-          python-version: ${{ matrix.python }}
+          python-version: "3.14"
       - name: 🏗 Install project dependencies
         run: uv sync --frozen --dev
       - name: 🚀 Process coverage results
