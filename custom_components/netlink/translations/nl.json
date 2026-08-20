@@ -41,12 +41,12 @@
       },
       "manual": {
         "title": "Handmatig token invoeren",
-        "description": "Voer je authenticatie token in voor {host}.",
+        "description": "Voer het speciale Home Assistant-servicetoken voor {host} in. Een bestaand REST bearer-token blijft tijdens de migratie ondersteund.",
         "data": {
           "token": "Token"
         },
         "data_description": {
-          "token": "Je vindt dit token in de NetLink webinterface instellingen."
+          "token": "Gebruik het speciale Home Assistant-servicetoken uit de NetLink-apparaatconfiguratie. Gebruik nooit een onderhoudscode voor signing."
         }
       },
       "discovery_confirm": {
@@ -77,7 +77,7 @@
       },
       "reauth_confirm": {
         "title": "Integratie opnieuw authenticeren",
-        "description": "Het authenticatie token voor {host} is niet meer geldig. Voer een nieuw token in.",
+        "description": "Voer het speciale Home Assistant-servicetoken voor {host} in. Herauthenticatie vervangt het token zonder entiteiten of apparaten opnieuw aan te maken.",
         "data": {
           "token": "Token"
         }
@@ -96,6 +96,9 @@
     },
     "command_unavailable": {
       "message": "Het commando kon niet worden verstuurd naar {name}. Het apparaat is mogelijk offline of onbereikbaar."
+    },
+    "command_not_authorized": {
+      "message": "Het NetLink-autorisatiebeleid staat dit commando voor {name} niet toe. Controleer of het speciale Home Assistant-servicetoken is geconfigureerd."
     }
   },
   "entity": {

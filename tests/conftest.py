@@ -8,8 +8,10 @@ from unittest.mock import patch
 
 import pytest
 from pynetlink import (
+    EVENT_AUTHORIZATION_STATE,
     AccessCode,
     AccessCodes,
+    AuthorizationState,
     BrowserState,
     Desk,
     DeskState,
@@ -30,6 +32,34 @@ HOST = "netlink.local"
 TOKEN = "secret-token"
 
 
+def authorization_state(
+    *allowed_commands: str,
+    access_codes: bool = True,
+) -> AuthorizationState:
+    """Build a version 1 effective authorization policy."""
+    return AuthorizationState.from_dict(
+        {
+            "policy_version": 1,
+            "allowed_commands": list(allowed_commands),
+            "event_audiences": {"access_codes.state": access_codes},
+            "maintenance": {"granted": False, "valid_until": None},
+        }
+    )
+
+
+def authorization_payload(state: AuthorizationState) -> dict[str, Any]:
+    """Serialize the immutable authorization model as a WebSocket payload."""
+    return {
+        "policy_version": state.policy_version,
+        "allowed_commands": sorted(state.allowed_commands),
+        "event_audiences": dict(state.event_audiences),
+        "maintenance": {
+            "granted": state.maintenance.granted,
+            "valid_until": state.maintenance.valid_until,
+        },
+    }
+
+
 class FakeNetlinkClient:
     """Fake the external pynetlink boundary while preserving its event contract."""
 
@@ -41,6 +71,7 @@ class FakeNetlinkClient:
         self.rest_error: Exception | None = None
         self.display_error: Exception | None = None
         self.access_codes_error: Exception | None = None
+        self.access_codes_calls = 0
         self.command_error: Exception | None = None
         self.commands: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
         self.device_info = DeviceInfo(
@@ -102,6 +133,7 @@ class FakeNetlinkClient:
                 timezone="Europe/Amsterdam",
             ),
         )
+        self.authorization_state: AuthorizationState | None = None
 
     def on(self, event: str):
         """Register a pynetlink event callback."""
@@ -118,6 +150,9 @@ class FakeNetlinkClient:
             self.connected = True
         elif event == "disconnect":
             self.connected = False
+            self.authorization_state = None
+        elif event == EVENT_AUTHORIZATION_STATE:
+            self.authorization_state = AuthorizationState.from_dict(data)
         await self.handlers[event]({} if data is None else data)
 
     async def connect(self) -> None:
@@ -163,6 +198,7 @@ class FakeNetlinkClient:
 
     async def get_access_codes(self) -> AccessCodes:
         """Return access codes."""
+        self.access_codes_calls += 1
         self._raise_rest_error()
         if self.access_codes_error is not None:
             raise self.access_codes_error

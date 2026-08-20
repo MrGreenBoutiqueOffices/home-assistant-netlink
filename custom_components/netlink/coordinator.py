@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Iterator
-from contextlib import suppress
 from datetime import datetime
 from enum import Enum, auto
 import logging
@@ -12,18 +11,21 @@ from typing import Any
 
 from pynetlink import (
     EVENT_ACCESS_CODES_STATE,
+    EVENT_AUTHORIZATION_STATE,
     EVENT_BROWSER_STATE,
     EVENT_DESK_STATE,
     EVENT_DEVICE_INFO,
     EVENT_DISPLAY_STATE,
     EVENT_DISPLAYS_LIST,
+    AccessCodes,
+    AuthorizationState,
     BrowserState,
     Desk,
     DeviceInfo,
     Display,
     DisplaySummary,
-    AccessCodes,
     NetlinkAuthenticationError,
+    NetlinkAuthorizationError,
     NetlinkClient,
     NetlinkDataError,
     NetlinkError,
@@ -41,6 +43,22 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import DOMAIN, RECONCILIATION_INTERVAL, WEBSOCKET_DISCONNECT_GRACE
 
 _LOGGER = logging.getLogger(__name__)
+
+EXPECTED_HOME_ASSISTANT_COMMANDS = frozenset(
+    {
+        "command.browser.refresh",
+        "command.desk.beep",
+        "command.desk.calibrate",
+        "command.desk.height",
+        "command.desk.reset",
+        "command.desk.stop",
+        "command.display.brightness",
+        "command.display.power",
+        "command.display.source",
+        "command.display.volume",
+        "command.system.reboot",
+    }
+)
 
 
 class _ConnectivityState(Enum):
@@ -78,6 +96,9 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.known_bus_ids: set[str] = set()
         self._new_display_callbacks: list[Callable[[str], None]] = []
         self._access_codes_available_callbacks: list[Callable[[], None]] = []
+        self.access_codes_status = "unknown"
+        self.last_authorization_failure: str | None = None
+        self._last_missing_commands: frozenset[str] = frozenset()
         self._connectivity_state = _ConnectivityState.INITIALIZING
         self._cancel_disconnect_grace: CALLBACK_TYPE | None = None
         self._cancel_reconciliation: CALLBACK_TYPE | None = None
@@ -172,9 +193,31 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "displays": display_states,
                 "browser": browser_state,
             }
-            with suppress(NetlinkNotFoundError):
-                access_codes = await self.client.get_access_codes()
-                coordinator_data["access_codes"] = access_codes
+            authorization = self.client.authorization_state
+            if authorization is not None:
+                coordinator_data["authorization"] = authorization
+                self._report_missing_commands(authorization)
+
+            if (
+                authorization is not None
+                and authorization.receives_event(EVENT_ACCESS_CODES_STATE) is False
+            ):
+                self.access_codes_status = "unauthorized"
+            else:
+                try:
+                    coordinator_data[
+                        "access_codes"
+                    ] = await self.client.get_access_codes()
+                except NetlinkNotFoundError:
+                    self.access_codes_status = "not_supported"
+                except NetlinkAuthenticationError:
+                    # The general credential is valid because the main snapshot above
+                    # succeeded. Only the sensitive admin resource is unavailable.
+                    self.access_codes_status = "unauthorized"
+                except (NetlinkError, NetlinkDataError) as err:
+                    self.access_codes_status = type(err).__name__
+                else:
+                    self.access_codes_status = "available"
 
         except NetlinkAuthenticationError as err:
             self._mark_refresh_failed()
@@ -234,6 +277,56 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if isinstance(supports, dict) and capability in supports:
                     return bool(supports[capability])
         return None
+
+    @property
+    def authorization_state(self) -> AuthorizationState | None:
+        """Return the current connection policy, if advertised by the server."""
+        if not self.data:
+            return None
+        return self.data.get("authorization")
+
+    def command_allowed(self, command: str) -> bool:
+        """Return whether the advertised policy permits a command.
+
+        Older servers do not advertise a policy and retain their existing behavior.
+        """
+        authorization = self.authorization_state
+        return authorization is None or authorization.allows_command(command)
+
+    @property
+    def access_codes_known(self) -> bool:
+        """Return whether access-code entities should be represented."""
+        return bool(
+            (self.data and "access_codes" in self.data)
+            or self.access_codes_status == "unauthorized"
+        )
+
+    @property
+    def access_codes_available(self) -> bool:
+        """Return whether access-code values are currently available."""
+        return bool(
+            self.data
+            and "access_codes" in self.data
+            and self.access_codes_status == "available"
+        )
+
+    def record_authorization_failure(self, err: NetlinkAuthorizationError) -> None:
+        """Record a non-sensitive typed authorization failure for diagnostics."""
+        self.last_authorization_failure = type(err).__name__
+
+    def _report_missing_commands(self, authorization: AuthorizationState) -> None:
+        """Report unexpected policy gaps without exposing credential material."""
+        missing = EXPECTED_HOME_ASSISTANT_COMMANDS - authorization.allowed_commands
+        if missing == self._last_missing_commands:
+            return
+        self._last_missing_commands = missing
+        if missing:
+            _LOGGER.warning(
+                "NetLink authorization policy %s is missing expected Home Assistant "
+                "commands: %s. Check the configured service credential",
+                authorization.policy_version,
+                ", ".join(sorted(missing)),
+            )
 
     def async_add_new_display_callback(self, callback: Callable[[str], None]) -> None:
         """Register a callback to be called when a new display is discovered."""
@@ -344,14 +437,52 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             """Handle push updates for access codes."""
             if not self._push_updates_allowed():
                 return
+            authorization = self.authorization_state
+            if (
+                authorization is not None
+                and authorization.receives_event(EVENT_ACCESS_CODES_STATE) is False
+            ):
+                _LOGGER.warning(
+                    "Ignoring access-code state outside the advertised event audience"
+                )
+                return
             try:
                 access_codes = AccessCodes.from_dict(data)
             except NetlinkDataError as exc:
                 _LOGGER.warning("Skipping incomplete access code state: %s", exc)
                 return
             had_access_codes = "access_codes" in (self.data or {})
+            self.access_codes_status = "available"
             self._patch_data("access_codes", access_codes)
             if not had_access_codes:
+                for callback in self._access_codes_available_callbacks:
+                    callback()
+
+        @self.client.on(EVENT_AUTHORIZATION_STATE)
+        async def on_authorization_state(data: dict[str, Any]) -> None:
+            """Handle effective connection-policy updates."""
+            try:
+                authorization = AuthorizationState.from_dict(data)
+            except NetlinkDataError as exc:
+                _LOGGER.warning("Skipping incomplete authorization state: %s", exc)
+                return
+
+            self.last_authorization_failure = None
+            self._report_missing_commands(authorization)
+            if not self._push_updates_allowed():
+                return
+
+            previous_access_codes_known = self.access_codes_known
+            updated_data = {**(self.data or {}), "authorization": authorization}
+            if authorization.receives_event(EVENT_ACCESS_CODES_STATE) is False:
+                updated_data.pop("access_codes", None)
+                self.access_codes_status = "unauthorized"
+            elif "access_codes" in updated_data:
+                self.access_codes_status = "available"
+            else:
+                self.access_codes_status = "unknown"
+            self.async_set_updated_data(updated_data)
+            if not previous_access_codes_known and self.access_codes_known:
                 for callback in self._access_codes_available_callbacks:
                     callback()
 

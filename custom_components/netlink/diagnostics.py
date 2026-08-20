@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from pynetlink import EVENT_ACCESS_CODES_STATE
+
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_TOKEN
 from homeassistant.core import HomeAssistant
 
-from .coordinator import NetlinkDataUpdateCoordinator
+from .coordinator import (
+    EXPECTED_HOME_ASSISTANT_COMMANDS,
+    NetlinkDataUpdateCoordinator,
+)
 
 TO_REDACT = {CONF_TOKEN}
 
@@ -85,6 +90,31 @@ async def async_get_config_entry_diagnostics(
         "host": entry.data.get("host"),
     }
 
+    authorization = coordinator.authorization_state
+    authorization_data = {
+        "state_received": authorization is not None,
+        "policy_version": (
+            authorization.policy_version if authorization is not None else None
+        ),
+        "allowed_commands": (
+            sorted(authorization.allowed_commands)
+            if authorization is not None
+            else None
+        ),
+        "missing_expected_commands": (
+            sorted(EXPECTED_HOME_ASSISTANT_COMMANDS - authorization.allowed_commands)
+            if authorization is not None
+            else None
+        ),
+        "access_codes_event_allowed": (
+            authorization.receives_event(EVENT_ACCESS_CODES_STATE)
+            if authorization is not None
+            else None
+        ),
+        "access_codes_status": coordinator.access_codes_status,
+        "last_failure_category": coordinator.last_authorization_failure,
+    }
+
     return {
         "config_entry": {
             "entry_id": entry.entry_id,
@@ -98,6 +128,7 @@ async def async_get_config_entry_diagnostics(
             "name": coordinator.name,
             "last_update_success": coordinator.last_update_success,
             "data": coordinator_data_dict,
+            "authorization": authorization_data,
         },
         "client": client_state,
     }

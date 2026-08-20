@@ -4,8 +4,16 @@ from __future__ import annotations
 
 import re
 
+from pynetlink import (
+    NetlinkAuthorizationError,
+    NetlinkCommandError,
+    NetlinkConnectionError,
+    NetlinkTimeoutError,
+)
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -24,6 +32,8 @@ def _get_suggested_area(device_name: str | None) -> str | None:
 class NetlinkBaseEntity(CoordinatorEntity[NetlinkDataUpdateCoordinator]):
     """Base entity for NetLink platforms."""
 
+    command: str | None = None
+
     def __init__(
         self,
         coordinator: NetlinkDataUpdateCoordinator,
@@ -40,6 +50,30 @@ class NetlinkBaseEntity(CoordinatorEntity[NetlinkDataUpdateCoordinator]):
     def _device_sw_version(self) -> str | None:
         """Return device software version if known."""
         return self.coordinator.device_info.version
+
+    @property
+    def available(self) -> bool:
+        """Return availability based on connectivity and advertised policy."""
+        return super().available and (
+            self.command is None or self.coordinator.command_allowed(self.command)
+        )
+
+    def _command_error(self, err: Exception) -> HomeAssistantError:
+        """Translate a client command error without exposing sensitive details."""
+        if isinstance(err, NetlinkAuthorizationError):
+            self.coordinator.record_authorization_failure(err)
+            key = "command_not_authorized"
+        elif isinstance(err, (NetlinkConnectionError, NetlinkTimeoutError)):
+            key = "command_unavailable"
+        elif isinstance(err, NetlinkCommandError):
+            key = "command_failed"
+        else:  # pragma: no cover - callers only pass the public client hierarchy
+            raise err
+        return HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key=key,
+            translation_placeholders={"name": self.device_name},
+        )
 
 
 class NetlinkControllerEntity(NetlinkBaseEntity):

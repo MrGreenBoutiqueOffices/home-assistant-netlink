@@ -227,6 +227,11 @@ class NetlinkAccessCodeSensor(NetlinkControllerEntity, SensorEntity):
             return None
         return self.entity_description.value_fn(data)
 
+    @property
+    def available(self) -> bool:
+        """Return whether sensitive access-code data is currently authorized."""
+        return super().available and self.coordinator.access_codes_available
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -244,7 +249,7 @@ async def async_setup_entry(
         NetlinkDeskSensor(coordinator, entry, description)
         for description in DESK_SENSORS
     )
-    if "access_codes" in coordinator.data:
+    if coordinator.access_codes_known:
         entities.extend(
             NetlinkAccessCodeSensor(coordinator, entry, description)
             for description in ACCESS_CODE_SENSORS
@@ -268,7 +273,7 @@ async def async_setup_entry(
 
     coordinator.async_add_new_display_callback(_on_new_display)
 
-    access_code_entities_added = "access_codes" in coordinator.data
+    access_code_entities_added = coordinator.access_codes_known
 
     def _on_access_codes_available() -> None:
         nonlocal access_code_entities_added

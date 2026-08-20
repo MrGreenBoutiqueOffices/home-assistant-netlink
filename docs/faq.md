@@ -6,6 +6,7 @@ This page collects the most common issues when installing and using the NetLink 
 
 - [Device not discovered](#device-not-discovered)
 - [Authentication errors](#authentication-errors)
+- [Authorization policy errors](#authorization-policy-errors)
 - [Connection errors](#connection-errors)
 - [Entities show as unavailable](#entities-show-as-unavailable)
 - [Display controls not appearing](#display-controls-not-appearing)
@@ -41,12 +42,24 @@ This page collects the most common issues when installing and using the NetLink 
 ### Manual token
 
 **What to check**
-- Verify the bearer token matches the device configuration
-- Check the `REST_BEARER_TOKEN` environment variable on the NetLink device
+- Prefer the dedicated Home Assistant service token configured on the NetLink device
+- During migration, verify that the legacy `REST_BEARER_TOKEN` still matches the device configuration
 
 **Notes**
-- Tokens do not expire (static configuration)
-- To update the token in Home Assistant: **Settings** → **Devices & Services** → **NetLink** → **Configure**
+- Tokens do not expire automatically (static configuration)
+- Reauthenticate the existing entry to rotate a token without recreating entities or devices
+- Never enter a signing maintenance code; Home Assistant is a machine integration
+
+## Authorization policy errors
+
+Newer devices advertise the commands and sensitive events allowed for the connected
+identity. If a control entity is unavailable while the connection is healthy, download
+diagnostics and inspect the non-sensitive authorization section.
+
+- Missing expected commands normally mean the wrong service token or an incomplete server policy
+- Home Assistant does not request a maintenance PIN and does not bypass an explicit WebSocket denial through REST
+- Older devices without authorization discovery retain their existing behavior
+- If access-code permission is missing, only the access-code entities become unavailable
 
 ## Connection errors
 
@@ -86,6 +99,7 @@ Diagnostics are the fastest way to troubleshoot.
 - Coordinator state
 - Connection status
 - Entity states
+- Authorization policy version, allowed/missing command identifiers, and failure category
 
 **Privacy**
 - Sensitive data (tokens) is automatically redacted

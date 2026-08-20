@@ -10,10 +10,8 @@ from pynetlink import NetlinkCommandError, NetlinkConnectionError, NetlinkTimeou
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import NetlinkDisplayEntity
 
@@ -22,6 +20,7 @@ from .entity import NetlinkDisplayEntity
 class NetlinkSelectEntityDescription(SelectEntityDescription):
     """Select entity description."""
 
+    command: str
     select_fn: Callable
 
 
@@ -29,6 +28,7 @@ DISPLAY_SELECTS: list[NetlinkSelectEntityDescription] = [
     NetlinkSelectEntityDescription(
         key="source",
         translation_key="display_source",
+        command="command.display.source",
         select_fn=lambda client, bus_id, option: client.set_display_source(
             bus_id, option
         ),
@@ -48,6 +48,7 @@ class NetlinkDisplaySelect(NetlinkDisplayEntity, SelectEntity):
     ) -> None:
         super().__init__(coordinator, entry, bus_id)
         self.entity_description = description
+        self.command = description.command
         self._attr_unique_id = f"{self.device_id}_display_{bus_id}_{description.key}"
         # Seed options from initial coordinator data so they remain available
         # even when the display temporarily disappears (e.g. after power-off).
@@ -77,17 +78,9 @@ class NetlinkDisplaySelect(NetlinkDisplayEntity, SelectEntity):
                 self.coordinator.client, self.bus_id, option
             )
         except NetlinkCommandError as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_failed",
-                translation_placeholders={"name": self.device_name},
-            ) from err
+            raise self._command_error(err) from err
         except (NetlinkConnectionError, NetlinkTimeoutError) as err:
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="command_unavailable",
-                translation_placeholders={"name": self.device_name},
-            ) from err
+            raise self._command_error(err) from err
 
 
 async def async_setup_entry(
