@@ -17,9 +17,15 @@ jobs:
   pytest:
     name: Python ${{ matrix.python }}
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
+      fail-fast: false
       matrix:
-        python: ["3.13", "3.14"]
+        include:
+          - python: "3.14"
+            experimental: false
+          - python: "3.15"
+            experimental: true
     steps:
       - name: ⬇️ Check out code from GitHub
         uses: actions/checkout@v6.1.0
@@ -35,6 +41,7 @@ jobs:
       - name: 🧪 Run integration tests
         run: uv run pytest -v --cov custom_components
       - name: ⬆️ Upload coverage artifact
+        if: matrix.python == env.DEFAULT_PYTHON
         uses: actions/upload-artifact@v7.0.1
         with:
           name: coverage-${{ matrix.python }}
@@ -54,6 +61,9 @@ jobs:
           persist-credentials: false
       - name: ⬇️ Download coverage data
         uses: actions/download-artifact@v8.0.1
+        with:
+          name: coverage-${{ env.DEFAULT_PYTHON }}
+          path: coverage-${{ env.DEFAULT_PYTHON }}
       - name: 🏗 Set up UV
         uses: astral-sh/setup-uv@v8.3.2
         with:
