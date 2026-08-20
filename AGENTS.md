@@ -42,7 +42,7 @@ This repo is a Home Assistant custom integration: `custom_components/netlink/` (
 	- HACS (`.github/workflows/hacs.yaml`)
 
 ## Where to look first
-- Protocol/client behavior: external dependency `pynetlink==1.0.2` (see `custom_components/netlink/manifest.json`).
+- Protocol/client behavior: external dependency `pynetlink==1.6.0` (see `custom_components/netlink/manifest.json`).
 - Diagnostics: `custom_components/netlink/diagnostics.py`.
 
 If you need a shorter version, also see `.github/copilot-instructions.md`.
