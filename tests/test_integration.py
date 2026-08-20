@@ -3,8 +3,20 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+import logging
 
-from pynetlink import Desk, DeskState, NetlinkConnectionError
+from pynetlink import (
+    EVENT_ACCESS_CODES_STATE,
+    EVENT_BROWSER_STATE,
+    EVENT_DESK_STATE,
+    EVENT_DEVICE_INFO,
+    EVENT_DISPLAY_STATE,
+    EVENT_DISPLAYS_LIST,
+    Desk,
+    DeskState,
+    NetlinkConnectionError,
+)
+import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_fire_time_changed,
@@ -21,7 +33,7 @@ from custom_components.netlink.const import (
     WEBSOCKET_DISCONNECT_GRACE,
 )
 
-from .conftest import DEVICE_ID, FakeNetlinkClient
+from .conftest import DEVICE_ID, TOKEN, FakeNetlinkClient
 
 
 def _states_for_entry(
@@ -148,6 +160,31 @@ async def test_reconnect_restores_fresh_rest_state(
     )
 
 
+async def test_lifecycle_logs_once_without_credentials(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An outage and recovery each log once without exposing credentials."""
+    caplog.clear()
+    caplog.set_level(logging.INFO, logger="custom_components.netlink.coordinator")
+
+    await _expire_disconnect_grace(hass, netlink_client)
+    await netlink_client.emit("connect")
+    await hass.async_block_till_done()
+
+    lifecycle_records = [
+        record
+        for record in caplog.records
+        if record.name == "custom_components.netlink.coordinator"
+    ]
+    assert len(lifecycle_records) == 2
+    assert "WebSocket connection lost" in lifecycle_records[0].getMessage()
+    assert "recovered" in lifecycle_records[1].getMessage()
+    assert TOKEN not in caplog.text
+
+
 async def test_failed_reconnect_refresh_keeps_entities_unavailable(
     hass: HomeAssistant,
     setup_integration: MockConfigEntry,
@@ -193,13 +230,21 @@ async def test_disconnected_push_cannot_publish_stale_state(
     await _expire_disconnect_grace(hass, netlink_client)
 
     await netlink_client.emit(
-        "desk.state",
+        EVENT_DESK_STATE,
         {
             "capabilities": {"supports": {"height": True}},
             "inventory": {},
             "state": {"height": 99, "mode": "idle", "moving": False},
         },
     )
+    for event in (
+        EVENT_DEVICE_INFO,
+        EVENT_DISPLAY_STATE,
+        EVENT_BROWSER_STATE,
+        EVENT_ACCESS_CODES_STATE,
+        EVENT_DISPLAYS_LIST,
+    ):
+        await netlink_client.emit(event, {})
     await hass.async_block_till_done()
 
     assert all(
@@ -229,6 +274,80 @@ async def test_periodic_reconciliation_repairs_a_missed_push(
     assert (
         float(_state_by_unique_id(hass, "sensor", f"{DEVICE_ID}_desk_height").state)
         == 88
+    )
+
+
+async def test_reconciliation_removes_absent_display_state(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+) -> None:
+    """A display absent from an authoritative snapshot stops exposing live values."""
+    netlink_client.display_summaries = []
+
+    async_fire_time_changed(
+        hass,
+        datetime.now(UTC) + RECONCILIATION_INTERVAL + timedelta(seconds=1),
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert (
+        _state_by_unique_id(hass, "sensor", f"{DEVICE_ID}_display_1_brightness").state
+        == "unknown"
+    )
+    assert (
+        _state_by_unique_id(hass, "number", f"{DEVICE_ID}_display_1_brightness").state
+        == "unknown"
+    )
+    assert (
+        _state_by_unique_id(hass, "select", f"{DEVICE_ID}_display_1_source").state
+        == "unknown"
+    )
+    assert (
+        _state_by_unique_id(hass, "switch", f"{DEVICE_ID}_display_1_power").state
+        == "unknown"
+    )
+
+
+async def test_periodic_reconciliation_recovers_after_temporary_rest_failure(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+) -> None:
+    """A later reconciliation recovers after a temporary REST failure."""
+    now = datetime.now(UTC)
+    netlink_client.rest_error = NetlinkConnectionError("REST unavailable")
+
+    async_fire_time_changed(
+        hass,
+        now + RECONCILIATION_INTERVAL + timedelta(seconds=1),
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert all(
+        state.state == STATE_UNAVAILABLE
+        for state in _states_for_entry(hass, setup_integration)
+    )
+
+    netlink_client.rest_error = None
+    netlink_client.desk = Desk(
+        capabilities={"supports": {"height": True}},
+        inventory={},
+        state=DeskState(height=91, mode="idle", moving=False, beep="on"),
+    )
+    async_fire_time_changed(
+        hass,
+        now + 2 * RECONCILIATION_INTERVAL + timedelta(seconds=2),
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert (
+        float(_state_by_unique_id(hass, "sensor", f"{DEVICE_ID}_desk_height").state)
+        == 91
+    )
+    assert all(
+        state.state != STATE_UNAVAILABLE
+        for state in _states_for_entry(hass, setup_integration)
     )
 
 

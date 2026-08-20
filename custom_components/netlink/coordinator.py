@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Callable, Iterator
 from contextlib import suppress
 from datetime import datetime
+from enum import Enum, auto
 import logging
 from typing import Any
 
@@ -31,7 +32,7 @@ from pynetlink import (
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
@@ -40,6 +41,16 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import DOMAIN, RECONCILIATION_INTERVAL, WEBSOCKET_DISCONNECT_GRACE
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class _ConnectivityState(Enum):
+    """Authoritative connectivity state for coordinator data."""
+
+    INITIALIZING = auto()
+    READY = auto()
+    DISCONNECTED = auto()
+    RECOVERING = auto()
+    SHUTTING_DOWN = auto()
 
 
 class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -67,13 +78,10 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.known_bus_ids: set[str] = set()
         self._new_display_callbacks: list[Callable[[str], None]] = []
         self._access_codes_available_callbacks: list[Callable[[], None]] = []
-        self._initial_refresh_done = False
-        self._accept_push_updates = False
-        self._cancel_disconnect_grace: Callable[[], None] | None = None
-        self._cancel_reconciliation: Callable[[], None] | None = None
+        self._connectivity_state = _ConnectivityState.INITIALIZING
+        self._cancel_disconnect_grace: CALLBACK_TYPE | None = None
+        self._cancel_reconciliation: CALLBACK_TYPE | None = None
         self._reconnect_lock = asyncio.Lock()
-        self._refreshing_after_connect = False
-        self._shutting_down = False
 
     def _cancel_disconnect_timer(self) -> None:
         """Cancel a pending disconnect grace timer."""
@@ -85,23 +93,25 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_disconnect_grace_elapsed(self, _: datetime) -> None:
         """Mark coordinator data unavailable after a sustained disconnect."""
         self._cancel_disconnect_grace = None
-        if self._shutting_down or self._accept_push_updates:
+        if self._connectivity_state is not _ConnectivityState.DISCONNECTED:
             return
 
-        _LOGGER.warning(
-            "WebSocket disconnect grace period expired for %s; "
-            "marking entities unavailable",
-            self.name,
-        )
         self.async_set_update_error(UpdateFailed("WebSocket connection lost"))
 
     def _push_updates_allowed(self) -> bool:
         """Return whether push events may update authoritative live state."""
-        return self._accept_push_updates and not self._shutting_down
+        return self._connectivity_state is _ConnectivityState.READY
 
     async def _async_reconcile(self, _: datetime) -> None:
         """Refresh REST state periodically without replacing push updates."""
-        if not self._push_updates_allowed():
+        if (
+            self._connectivity_state
+            in {
+                _ConnectivityState.INITIALIZING,
+                _ConnectivityState.SHUTTING_DOWN,
+            }
+            or self._cancel_disconnect_grace is not None
+        ):
             return
         await self.async_refresh()
 
@@ -122,7 +132,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if bus_id in self.known_bus_ids:
             return
         self.known_bus_ids.add(bus_id)
-        if self._initial_refresh_done:
+        if self._connectivity_state is not _ConnectivityState.INITIALIZING:
             for callback in self._new_display_callbacks:
                 callback(bus_id)
 
@@ -152,10 +162,6 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.client.get_displays(),
                 self.client.get_browser_status(),
             )
-            self.device_info = device_info
-            self.display_info = {str(d.bus): d for d in displays}
-            self._track_bus_ids(displays)
-
             display_results = await asyncio.gather(
                 *[self._fetch_display_status(d) for d in displays]
             )
@@ -171,7 +177,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 coordinator_data["access_codes"] = access_codes
 
         except NetlinkAuthenticationError as err:
-            self._accept_push_updates = False
+            self._mark_refresh_failed()
             raise ConfigEntryAuthFailed(
                 translation_domain=DOMAIN,
                 translation_key="auth_failed",
@@ -181,7 +187,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 },
             ) from err
         except (NetlinkError, NetlinkDataError) as err:
-            self._accept_push_updates = False
+            self._mark_refresh_failed()
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="cannot_connect",
@@ -192,11 +198,26 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ) from err
         else:
             if not self.client.connected:
-                self._accept_push_updates = False
+                self._mark_refresh_failed()
                 raise UpdateFailed("WebSocket is disconnected")
-            if self._initial_refresh_done and not self._refreshing_after_connect:
-                self._accept_push_updates = True
+            self.device_info = device_info
+            self.display_info = {str(d.bus): d for d in displays}
+            self._track_bus_ids(displays)
+            self._connectivity_state = _ConnectivityState.READY
             return coordinator_data
+
+    def _mark_refresh_failed(self) -> None:
+        """Block push updates until a later authoritative refresh succeeds."""
+        if self._connectivity_state in {
+            _ConnectivityState.INITIALIZING,
+            _ConnectivityState.SHUTTING_DOWN,
+        }:
+            return
+        self._connectivity_state = (
+            _ConnectivityState.RECOVERING
+            if self.client.connected
+            else _ConnectivityState.DISCONNECTED
+        )
 
     def display_supports(self, bus_id: str, capability: str) -> bool | None:
         """Return whether a display supports a capability.
@@ -230,50 +251,28 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         @self.client.on("connect")
         async def on_connect(_: dict[str, Any]) -> None:
             """Handle WebSocket reconnect events."""
-            if not self._initial_refresh_done or self._shutting_down:
+            if self._connectivity_state in {
+                _ConnectivityState.INITIALIZING,
+                _ConnectivityState.SHUTTING_DOWN,
+            }:
                 return
 
             self._cancel_disconnect_timer()
             async with self._reconnect_lock:
-                if self._accept_push_updates:
+                if self._connectivity_state is _ConnectivityState.READY:
                     return
-                _LOGGER.info(
-                    "WebSocket reconnected for %s; refreshing authoritative state",
-                    self.name,
-                )
-                self._refreshing_after_connect = True
-                try:
-                    await self.async_refresh()
-                finally:
-                    self._refreshing_after_connect = False
-                if self.last_update_success:
-                    self._accept_push_updates = True
-                    _LOGGER.info(
-                        "Authoritative state restored for %s; entities are available",
-                        self.name,
-                    )
-                else:
-                    _LOGGER.warning(
-                        "Post-reconnect state refresh failed for %s; "
-                        "entities remain unavailable",
-                        self.name,
-                    )
+                self._connectivity_state = _ConnectivityState.RECOVERING
+                await self.async_refresh()
 
         @self.client.on("disconnect")
         async def on_disconnect(_: dict[str, Any]) -> None:
             """Handle WebSocket disconnect events."""
-            if self._shutting_down:
+            if self._connectivity_state is _ConnectivityState.SHUTTING_DOWN:
                 return
 
-            self._accept_push_updates = False
+            self._connectivity_state = _ConnectivityState.DISCONNECTED
             if self._cancel_disconnect_grace is not None:
                 return
-            _LOGGER.info(
-                "WebSocket disconnected for %s; waiting %s seconds before "
-                "marking entities unavailable",
-                self.name,
-                int(WEBSOCKET_DISCONNECT_GRACE.total_seconds()),
-            )
             self._cancel_disconnect_grace = async_call_later(
                 self.hass,
                 WEBSOCKET_DISCONNECT_GRACE,
@@ -352,7 +351,7 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 return
             had_access_codes = "access_codes" in (self.data or {})
             self._patch_data("access_codes", access_codes)
-            if self._initial_refresh_done and not had_access_codes:
+            if not had_access_codes:
                 for callback in self._access_codes_available_callbacks:
                     callback()
 
@@ -372,8 +371,6 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise
 
         await self.async_config_entry_first_refresh()
-        self._accept_push_updates = True
-        self._initial_refresh_done = True
         self._cancel_reconciliation = async_track_time_interval(
             self.hass,
             self._async_reconcile,
@@ -396,10 +393,9 @@ class NetlinkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator and disconnect WebSocket."""
-        if self._shutting_down:
+        if self._connectivity_state is _ConnectivityState.SHUTTING_DOWN:
             return
-        self._shutting_down = True
-        self._accept_push_updates = False
+        self._connectivity_state = _ConnectivityState.SHUTTING_DOWN
         self._cancel_disconnect_timer()
         if self._cancel_reconciliation is not None:
             self._cancel_reconciliation()

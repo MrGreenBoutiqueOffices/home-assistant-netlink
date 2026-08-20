@@ -1395,6 +1395,7 @@ dev = [
     { name = "pre-commit-hooks" },
     { name = "prek" },
     { name = "pynetlink" },
+    { name = "pytest-cov" },
     { name = "pytest-homeassistant-custom-component" },
     { name = "ruff" },
 ]
@@ -1407,6 +1408,7 @@ dev = [
     { name = "pre-commit-hooks", specifier = "==6.0.0" },
     { name = "prek", specifier = "==0.4.14" },
     { name = "pynetlink", specifier = "==1.5.0" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
     { name = "pytest-homeassistant-custom-component", specifier = "==0.13.356" },
     { name = "ruff", specifier = "==0.15.22" },
 ]
