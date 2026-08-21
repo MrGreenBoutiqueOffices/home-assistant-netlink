@@ -128,7 +128,17 @@
         "name": "Bron"
       },
       "display_error": {
-        "name": "Fout"
+        "name": "Fout",
+        "state": {
+          "ddc_timeout": "DDC-time-out",
+          "unsupported_feature": "Niet-ondersteunde functie",
+          "monitor_missing": "Scherm niet bereikbaar",
+          "malformed_response": "Ongeldig schermantwoord",
+          "general_io_failure": "DDC-communicatiefout",
+          "profile_missing": "Schermprofiel ontbreekt",
+          "state_mismatch": "Onverwachte schermstatus",
+          "other": "Schermfout"
+        }
       },
       "web_login_access_code": {
         "name": "Web login toegangscode"
