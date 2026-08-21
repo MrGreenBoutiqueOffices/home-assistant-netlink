@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Callable
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -26,6 +28,60 @@ class NetlinkSensorEntityDescription(SensorEntityDescription):
     """Sensor entity description with value resolver."""
 
     value_fn: Callable[[object], int | float | str | bool | None]
+
+
+DISPLAY_ERROR_OPTIONS = [
+    "ddc_timeout",
+    "unsupported_feature",
+    "monitor_missing",
+    "malformed_response",
+    "general_io_failure",
+    "profile_missing",
+    "state_mismatch",
+    "other",
+]
+
+_DISPLAY_ERROR_ATTRIBUTE_KEYS = (
+    "stage",
+    "operation",
+    "reason",
+    "detail",
+    "exception_type",
+    "attempt",
+    "max_attempts",
+    "retry_outcome",
+    "elapsed_ms",
+    "bus",
+    "model",
+    "profile",
+)
+
+
+def _display_error_attributes(error: str | None) -> dict[str, Any] | None:
+    """Return safe structured diagnostics without exposing JSON as entity state."""
+    if not error:
+        return None
+    try:
+        payload = json.loads(error)
+    except json.JSONDecodeError, TypeError:
+        return {"detail": str(error)[:1024]}
+    if not isinstance(payload, dict):
+        return {"detail": str(error)[:1024]}
+    attributes = {
+        key: payload[key]
+        for key in _DISPLAY_ERROR_ATTRIBUTE_KEYS
+        if key in payload and payload[key] is not None
+    }
+    return attributes or {"detail": str(error)[:1024]}
+
+
+def _display_error_value(error: str | None) -> str | None:
+    """Return a bounded, translatable display-error state."""
+    attributes = _display_error_attributes(error)
+    if attributes is None:
+        return None
+    reason = attributes.get("reason")
+    return reason if reason in DISPLAY_ERROR_OPTIONS else "other"
 
 
 DESK_SENSORS: list[NetlinkSensorEntityDescription] = [
@@ -77,8 +133,10 @@ DISPLAY_SENSORS: list[NetlinkSensorEntityDescription] = [
     NetlinkSensorEntityDescription(
         key="error",
         translation_key="display_error",
+        device_class=SensorDeviceClass.ENUM,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda data: (data.state.error or "")[:255] or None,
+        options=DISPLAY_ERROR_OPTIONS,
+        value_fn=lambda data: _display_error_value(data.state.error),
     ),
 ]
 
@@ -203,6 +261,16 @@ class NetlinkDisplaySensor(NetlinkDisplayEntity, SensorEntity):
         if data is None:
             return None
         return self.entity_description.value_fn(data)
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        """Expose structured display diagnostics as attributes on the error sensor."""
+        if self.entity_description.key != "error":
+            return None
+        data = self.coordinator.data["displays"].get(self.bus_id)
+        if data is None:
+            return None
+        return _display_error_attributes(data.state.error)
 
 
 class NetlinkAccessCodeSensor(NetlinkControllerEntity, SensorEntity):

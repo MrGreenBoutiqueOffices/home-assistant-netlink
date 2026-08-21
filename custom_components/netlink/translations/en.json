@@ -128,7 +128,17 @@
         "name": "Source"
       },
       "display_error": {
-        "name": "Error"
+        "name": "Error",
+        "state": {
+          "ddc_timeout": "DDC timeout",
+          "unsupported_feature": "Unsupported function",
+          "monitor_missing": "Display unavailable",
+          "malformed_response": "Invalid display response",
+          "general_io_failure": "DDC communication error",
+          "profile_missing": "Display profile missing",
+          "state_mismatch": "Unexpected display state",
+          "other": "Display error"
+        }
       },
       "web_login_access_code": {
         "name": "Web login access code"

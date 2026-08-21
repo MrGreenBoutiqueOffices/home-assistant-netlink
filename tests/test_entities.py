@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from pynetlink import (
     EVENT_AUTHORIZATION_STATE,
     NetlinkCommandError,
@@ -35,6 +37,63 @@ def test_missing_access_code_values_are_none() -> None:
     data = object()
     assert _access_code_value(data, "web_login") is None
     assert _access_code_valid_until(data, "web_login") is None
+
+
+async def test_display_error_sensor_summarizes_structured_diagnostics(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+) -> None:
+    """Structured display errors use a short state and diagnostic attributes."""
+    netlink_client.display.state.error = json.dumps(
+        {
+            "attempt": 2,
+            "bus": "1",
+            "detail": "ddcutil exited with returncode=1 and no error text",
+            "elapsed_ms": 4058,
+            "exception_type": "DdcutilExitError",
+            "max_attempts": 2,
+            "model": "dell_u3821dw",
+            "operation": "read_power",
+            "profile": "dell_u3821dw",
+            "reason": "general_io_failure",
+            "retry_outcome": "exhausted",
+            "stage": "ddc_read",
+        }
+    )
+    coordinator = setup_integration.runtime_data
+    coordinator.async_set_updated_data(coordinator.data)
+    await hass.async_block_till_done()
+
+    entity_id = _entity_id(hass, "sensor", f"{DEVICE_ID}_display_1_error")
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.state == "general_io_failure"
+    assert state.attributes["operation"] == "read_power"
+    assert state.attributes["detail"] == (
+        "ddcutil exited with returncode=1 and no error text"
+    )
+    assert state.attributes["attempt"] == 2
+    assert state.attributes["max_attempts"] == 2
+    assert "{" not in state.state
+
+
+async def test_display_error_sensor_preserves_legacy_detail(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+    netlink_client: FakeNetlinkClient,
+) -> None:
+    """Unstructured legacy errors remain available without becoming the state."""
+    netlink_client.display.state.error = "No DDC/CI response from monitor"
+    coordinator = setup_integration.runtime_data
+    coordinator.async_set_updated_data(coordinator.data)
+    await hass.async_block_till_done()
+
+    entity_id = _entity_id(hass, "sensor", f"{DEVICE_ID}_display_1_error")
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.state == "other"
+    assert state.attributes["detail"] == "No DDC/CI response from monitor"
 
 
 def _entity_id(hass: HomeAssistant, platform: str, unique_id: str) -> str:
