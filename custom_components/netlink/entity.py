@@ -17,7 +17,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_DEVICE_ID, DOMAIN
+from .const import CONF_DEVICE_ID, DOMAIN, MANUFACTURER
 from .coordinator import NetlinkDataUpdateCoordinator
 
 
@@ -87,7 +87,7 @@ class NetlinkControllerEntity(NetlinkBaseEntity):
         return DeviceInfo(
             identifiers={(DOMAIN, self.device_identifier)},
             name=self.device_name,
-            manufacturer="NetOS",
+            manufacturer=MANUFACTURER,
             model=self.coordinator.device_info.model,
             sw_version=self._device_sw_version(),
             suggested_area=self.suggested_area,
@@ -133,7 +133,7 @@ class NetlinkDisplayEntity(NetlinkBaseEntity):
         return DeviceInfo(
             identifiers={(DOMAIN, f"{self.device_identifier}-display-{self.bus_id}")},
             name=f"{self.device_name} (Display {self.bus_id})",
-            manufacturer="NetOS",
+            manufacturer=MANUFACTURER,
             model=model,
             sw_version=self._device_sw_version(),
             serial_number=serial,

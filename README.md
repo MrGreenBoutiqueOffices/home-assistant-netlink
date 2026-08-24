@@ -9,7 +9,7 @@ Native Home Assistant integration for NetLink smart desk and monitor control sys
 
 ## About
 
-NetLink is the operating software for smart standing desks, developed by [NetOS](https://net-os.com/). The system powers smart desks in commercial office environments, most notably at [Mr.Green Offices](https://mrgreenoffices.nl/) locations throughout the Netherlands.
+NetLink is the operating software for smart standing desks, developed by [Mr.Green](https://mrgreenoffices.nl/). The system powers smart desks in commercial office environments at Mr.Green locations throughout the Netherlands.
 
 This native Home Assistant integration provides **real-time control** over NetLink-powered desks. Unlike traditional polling-based integrations, it uses WebSocket push updates for instant state synchronization, making it ideal for responsive automations and dashboards.
 
@@ -235,7 +235,7 @@ We welcome contributions! Please read the [contribution guidelines](CONTRIBUTING
 
 ## Authors & contributors
 
-The original setup of this repository is created by [Klaas Schoute](https://github.com/klaasnicolaas) for [NetOS](https://net-os.com/) and [Mr.Green Boutique Offices](https://mrgreenoffices.nl/).
+The original setup of this repository is created by [Klaas Schoute](https://github.com/klaasnicolaas) for [Mr.Green](https://mrgreenoffices.nl/).
 
 Thanks to everyone who already contributed! ❤️
 
