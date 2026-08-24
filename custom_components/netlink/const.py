@@ -5,6 +5,7 @@ from datetime import timedelta
 from homeassistant.const import Platform
 
 DOMAIN = "netlink"
+MANUFACTURER = "Mr.Green"
 
 # Config entry data keys
 CONF_DEVICE_ID = "device_id"

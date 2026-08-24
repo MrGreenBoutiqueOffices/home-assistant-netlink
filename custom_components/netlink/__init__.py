@@ -18,7 +18,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_DEVICE_ID, DOMAIN, PLATFORMS
+from .const import CONF_DEVICE_ID, DOMAIN, MANUFACTURER, PLATFORMS
 from .coordinator import NetlinkDataUpdateCoordinator
 from .entity import _get_suggested_area
 
@@ -124,7 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, f"netlink-{entry.data[CONF_DEVICE_ID]}")},
         name=device_name,
-        manufacturer="NetOS",
+        manufacturer=MANUFACTURER,
         model=device_info.model,
         sw_version=device_info.version,
         configuration_url=f"http://{entry.data[CONF_HOST]}",
