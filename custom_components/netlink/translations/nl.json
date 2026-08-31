@@ -84,6 +84,18 @@
       }
     }
   },
+  "services": {
+    "set_browser_url": {
+      "name": "Stel browser URL in",
+      "description": "Stelt de browser URL in op de NetLink Waveshare display.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "De URL die in de browser geladen wordt."
+        }
+      }
+    }
+  },
   "exceptions": {
     "auth_failed": {
       "message": "Authenticatie met {name} ({host}) is mislukt. Authenticeer opnieuw."
