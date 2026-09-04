@@ -36,7 +36,7 @@ dev = [
     "pynetlink==1.6.0",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
-    "pytest-homeassistant-custom-component==0.13.357",
+    "pytest-homeassistant-custom-component==0.13.363",
     "ruff==0.16.6",
 ]
 
