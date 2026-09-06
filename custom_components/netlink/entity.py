@@ -145,8 +145,8 @@ class NetlinkDisplayEntity(NetlinkBaseEntity):
         }
 
         registry = dr.async_get(self.hass)
-        via_device = registry.async_get_device(
-            identifiers={(DOMAIN, self.device_identifier)}
+        via_device = registry.async_get_device_by_identifier(
+            (DOMAIN, self.device_identifier), self.entry.entry_id
         )
         if via_device is not None:
             device_info["via_device_id"] = via_device.id

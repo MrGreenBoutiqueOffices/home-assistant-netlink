@@ -44,8 +44,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # separate sub-device, so the old device entry is no longer needed.
         device_registry = dr.async_get(hass)
         desk_identifier = f"netlink-{entry.data[CONF_DEVICE_ID]}-desk"
-        device = device_registry.async_get_device(
-            identifiers={(DOMAIN, desk_identifier)}
+        device = device_registry.async_get_device_by_identifier(
+            (DOMAIN, desk_identifier), entry.entry_id
         )
         if device is not None:
             device_registry.async_remove_device(device.id)
