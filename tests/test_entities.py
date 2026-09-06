@@ -18,7 +18,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.netlink.const import DOMAIN
+from custom_components.netlink.const import CONF_DEVICE_ID, DOMAIN
+from custom_components.netlink.entity import NetlinkDisplayEntity
 from custom_components.netlink.sensor import (
     _access_code_valid_until,
     _access_code_value,
@@ -94,6 +95,25 @@ async def test_display_error_sensor_preserves_legacy_detail(
     assert state is not None
     assert state.state == "other"
     assert state.attributes["detail"] == "No DDC/CI response from monitor"
+
+
+async def test_display_device_info_skips_via_device_id_without_controller(
+    hass: HomeAssistant,
+    setup_integration: MockConfigEntry,
+) -> None:
+    """The display's device_info skips via_device_id if the controller is unregistered."""
+    coordinator = setup_integration.runtime_data
+    unregistered_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Unregistered controller",
+        data={**setup_integration.data, CONF_DEVICE_ID: "missing-device"},
+        unique_id="missing-device",
+    )
+
+    entity = NetlinkDisplayEntity(coordinator, unregistered_entry, "1")
+    entity.hass = hass
+
+    assert "via_device_id" not in entity.device_info
 
 
 def _entity_id(hass: HomeAssistant, platform: str, unique_id: str) -> str:
