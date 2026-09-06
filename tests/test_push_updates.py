@@ -165,8 +165,8 @@ async def test_push_events_update_home_assistant_state(
     assert float(hass.states.get(brightness_id).state) == 65
     assert hass.states.get(browser_id).state == "https://example.org"
 
-    controller = dr.async_get(hass).async_get_device(
-        identifiers={(DOMAIN, f"netlink-{DEVICE_ID}")}
+    controller = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, f"netlink-{DEVICE_ID}"), setup_integration.entry_id
     )
     assert controller is not None
     assert controller.model == "NetLink Pro"
