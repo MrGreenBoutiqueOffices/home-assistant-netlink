@@ -14,6 +14,7 @@ from pynetlink import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -130,14 +131,24 @@ class NetlinkDisplayEntity(NetlinkBaseEntity):
         serial = getattr(state, "serial_number", None) if state else None
         model = self._display_model()
 
-        return DeviceInfo(
-            identifiers={(DOMAIN, f"{self.device_identifier}-display-{self.bus_id}")},
-            name=f"{self.device_name} (Display {self.bus_id})",
-            manufacturer=MANUFACTURER,
-            model=model,
-            sw_version=self._device_sw_version(),
-            serial_number=serial,
-            suggested_area=self.suggested_area,
-            via_device=(DOMAIN, self.device_identifier),
-            configuration_url=f"http://{self.entry.data[CONF_HOST]}",
+        device_info: DeviceInfo = {
+            "identifiers": {
+                (DOMAIN, f"{self.device_identifier}-display-{self.bus_id}")
+            },
+            "name": f"{self.device_name} (Display {self.bus_id})",
+            "manufacturer": MANUFACTURER,
+            "model": model,
+            "sw_version": self._device_sw_version(),
+            "serial_number": serial,
+            "suggested_area": self.suggested_area,
+            "configuration_url": f"http://{self.entry.data[CONF_HOST]}",
+        }
+
+        registry = dr.async_get(self.hass)
+        via_device = registry.async_get_device(
+            identifiers={(DOMAIN, self.device_identifier)}
         )
+        if via_device is not None:
+            device_info["via_device_id"] = via_device.id
+
+        return device_info
