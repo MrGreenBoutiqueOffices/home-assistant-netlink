@@ -97,7 +97,7 @@ async def test_display_error_sensor_preserves_legacy_detail(
     assert state.attributes["detail"] == "No DDC/CI response from monitor"
 
 
-async def test_display_device_info_omits_via_device_id_when_controller_missing(
+async def test_display_device_info_skips_via_device_id_without_controller(
     hass: HomeAssistant,
     setup_integration: MockConfigEntry,
 ) -> None:
