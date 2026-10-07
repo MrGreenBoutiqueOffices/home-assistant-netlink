@@ -32,7 +32,7 @@ jobs:
       - name: 🧪 Run integration tests
         run: uv run pytest -v --cov custom_components
       - name: ⬆️ Upload coverage artifact
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: coverage-${{ env.DEFAULT_PYTHON }}
           include-hidden-files: true
