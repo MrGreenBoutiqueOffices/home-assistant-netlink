@@ -50,7 +50,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: ⬇️ Download coverage data
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@v8.0.2
         with:
           name: coverage-${{ env.DEFAULT_PYTHON }}
           path: coverage-${{ env.DEFAULT_PYTHON }}
