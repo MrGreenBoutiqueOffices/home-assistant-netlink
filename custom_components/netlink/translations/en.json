@@ -84,6 +84,18 @@
       }
     }
   },
+  "services": {
+    "set_browser_url": {
+      "name": "Set browser URL",
+      "description": "Sets the browser URL on the NetLink Waveshare display.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "The URL to load in the browser."
+        }
+      }
+    }
+  },
   "exceptions": {
     "auth_failed": {
       "message": "Authentication with {name} ({host}) failed. Please re-authenticate."
